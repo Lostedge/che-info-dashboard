@@ -1,6 +1,5 @@
 """
 SSE 推送服务器
-复用原项目核心逻辑，精简掉不必要的功能
 """
 
 import os
@@ -26,11 +25,18 @@ class SSEHandler(BaseHTTPRequestHandler):
     logger = logging.getLogger(__name__)
     on_client_connect = None
 
-    STATIC_FILES = {
-        '/': ('index.html', 'text/html'),
-        '/index.html': ('index.html', 'text/html'),
-        '/style.css': ('style.css', 'text/css'),
-        '/script.js': ('script.js', 'application/javascript'),
+    MIME_TYPES = {
+        '.html': 'text/html',
+        '.css': 'text/css',
+        '.js': 'application/javascript',
+        '.json': 'application/json',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.gif': 'image/gif',
+        '.svg': 'image/svg+xml',
+        '.ico': 'image/x-icon',
+        '.woff2': 'font/woff2',
     }
 
     def _get_static_dir(self):
@@ -51,7 +57,7 @@ class SSEHandler(BaseHTTPRequestHandler):
         try:
             if self.path == '/events':
                 self._handle_sse()
-            elif self.path in self.STATIC_FILES:
+            elif self.path.startswith('/'):
                 self._handle_static()
             else:
                 self.send_response(404)
@@ -69,7 +75,8 @@ class SSEHandler(BaseHTTPRequestHandler):
 
         with self.lock:
             self.__class__.clients.append(self)
-            self.logger.info(f"SSE 客户端连接，当前连接数: {len(self.clients)}")
+            client_ip = self.client_address[0]
+            self.logger.info(f"SSE 客户端连接: {client_ip}，当前连接数: {len(self.clients)}")
 
         if self.__class__.on_client_connect:
             self.__class__.on_client_connect()
@@ -88,9 +95,15 @@ class SSEHandler(BaseHTTPRequestHandler):
                     self.logger.info(f"SSE 客户端断开，当前连接数: {len(self.clients)}")
 
     def _handle_static(self):
-        filename, content_type = self.STATIC_FILES[self.path]
         static_dir = self._get_static_dir()
-        file_path = os.path.join(static_dir, filename)
+        rel_path = self.path.lstrip('/')
+        file_path = os.path.normpath(os.path.join(static_dir, rel_path))
+        if not file_path.startswith(os.path.normpath(static_dir) + os.sep):
+            self.send_response(403)
+            self.end_headers()
+            return
+        ext = os.path.splitext(file_path)[1].lower()
+        content_type = self.MIME_TYPES.get(ext, 'application/octet-stream')
         try:
             with open(file_path, 'rb') as f:
                 content = f.read()
@@ -99,13 +112,8 @@ class SSEHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(content)
         except FileNotFoundError:
-            try:
-                self.send_response(404)
-                self.end_headers()
-            except Exception:
-                pass
-        except Exception:
-            pass
+            self.send_response(404)
+            self.end_headers()
 
     def log_message(self, format, *args):
         pass
