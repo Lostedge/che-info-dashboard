@@ -1,7 +1,5 @@
 import paho.mqtt.client as mqtt
 import logging
-import ssl
-from typing import Optional
 
 class MQTTClient:
     """MQTT客户端"""

@@ -92,7 +92,7 @@ class SSEHandler(BaseHTTPRequestHandler):
             with self.lock:
                 if self in self.__class__.clients:
                     self.__class__.clients.remove(self)
-                    self.logger.info(f"SSE 客户端断开，当前连接数: {len(self.clients)}")
+                    self.logger.info(f"SSE 客户端断开: {client_ip}，当前连接数: {len(self.clients)}")
 
     def _handle_static(self):
         static_dir = self._get_static_dir()

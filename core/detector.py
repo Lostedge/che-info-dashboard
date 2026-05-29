@@ -12,7 +12,7 @@ from typing import Optional
 
 @dataclass
 class DeviceState:
-    """设备状态（兼消息模型）"""
+    """设备状态"""
     display_id: str      # 设备编号
     area: str            # 堆场
     bay: str             # 贝位
