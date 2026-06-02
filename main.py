@@ -133,7 +133,10 @@ def main():
     )
 
     # 5. 定时调度器（暂为骨架）
-    scheduler = Scheduler(sse_server=sse_server)
+    scheduler = Scheduler(
+        sse_server=sse_server, 
+        config=config.get('scheduler', {})
+    )
     scheduler.start()
 
     # 6. 启动
