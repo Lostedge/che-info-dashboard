@@ -141,7 +141,11 @@ def main():
 
     # 6. 启动
     try:
-        mqtt_client.connect()
+        try:
+            mqtt_client.connect()
+        except Exception as e:
+            logger.error(f"MQTT未连接，程序将继续运行但不接收MQTT消息")
+
         while True:
             time.sleep(1)
     except KeyboardInterrupt:

@@ -40,8 +40,13 @@ class MQTTClient:
         keepalive = self.config.get('keepalive', 60)
         
         self.logger.info(f"正在连接MQTT服务器: {host}:{port}")
-        self.client.connect(host, port, keepalive)
-        self.client.loop_start()
+        try:
+            self.client.connect(host, port, keepalive)
+            self.client.loop_start()
+        except Exception as e:
+            self.connected = False
+            self.logger.error(f"MQTT连接失败: {e}")
+            raise
     
     def _on_connect(self, client, userdata, flags, rc, *args, **kwargs):
         """连接成功回调"""
