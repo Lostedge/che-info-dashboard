@@ -31,11 +31,9 @@ def load_config(base_dir: str) -> dict:
             config = yaml.safe_load(f)
 
         mqtt_config = config.get('mqtt', {})
-        for key in ('username', 'password'):
-            val = mqtt_config.get(key, '')
-            if isinstance(val, str) and val.startswith('${'):
-                env_var = val[2:-1]
-                mqtt_config[key] = os.getenv(env_var, '')
+        oracle_config = config.get('oracle', {})
+        _resolve_env_vars(mqtt_config, ('username', 'password'))
+        _resolve_env_vars(oracle_config, ('user', 'password', 'lib_dir'))
 
         return config
 
@@ -45,6 +43,13 @@ def load_config(base_dir: str) -> dict:
     except yaml.YAMLError as e:
         print(f"错误: 配置文件格式错误 {e}")
         sys.exit(1)
+
+  
+def _resolve_env_vars(section: dict, keys: tuple):
+    for key in keys:
+        val = section.get(key, '')
+        if isinstance(val, str) and val.startswith('${'):
+            section[key] = os.getenv(val[2:-1], '')
 
 
 def main():
@@ -132,14 +137,22 @@ def main():
         message_handler=MqttHandler()
     )
 
-    # 5. 定时调度器（暂为骨架）
+    # 5. Oracle 连接池初始化
+    db = None
+    try:
+        from db import DBConnection
+        db = DBConnection(config['oracle'])
+    except Exception as e:
+        logger.warning(f"Oracle 连接失败，程序将继续运行但不查询数据库: {e}")
+
+    # 6. 定时调度器（暂为骨架）
     scheduler = Scheduler(
         sse_server=sse_server, 
         config=config.get('scheduler', {})
     )
     scheduler.start()
 
-    # 6. 启动
+    # 7. 启动
     try:
         try:
             mqtt_client.connect()
@@ -156,6 +169,8 @@ def main():
         mqtt_client.disconnect()
         scheduler.stop()
         sse_server.stop()
+        if db:
+            db.close()
         logger.info("系统已退出")
 
 

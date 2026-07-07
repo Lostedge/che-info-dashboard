@@ -152,7 +152,7 @@ class SSEServer:
         self.thread = threading.Thread(target=self._run, daemon=True)
         self.running = True
         self.thread.start()
-        self.logger.info(f"✅ SSE 服务器启动: http://{self.host}:{self.port}")
+        self.logger.info(f"✅ SSE 服务器已启动: http://{self.host}:{self.port}")
 
     def _run(self):
         try:

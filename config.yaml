@@ -36,14 +36,15 @@ sse:
   port: 8765
 
 # ===========================================================
-# Oracle 数据库配置（暂未实现）
+# Oracle 数据库配置
 # ===========================================================
-# oracle:
-#   host: "192.168.x.x"
-#   port: 1521
-#   service_name: "xxx"
-#   user: ${ORACLE_USER}
-#   password: ${ORACLE_PASSWORD}
+oracle:
+  host: "192.168.100.110"
+  port: 1521
+  service_name: "orcl"
+  user: ${ORACLE_USER}
+  password: ${ORACLE_PASSWORD}
+  lib_dir: ${ORACLE_LIB_DIR}
 
 # ===========================================================
 # 定时调度配置

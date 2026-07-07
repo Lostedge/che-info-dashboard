@@ -1,13 +1,12 @@
 """
-简化版日志配置
-仅保留按大小滚动 + 控制台输出，去掉双切割模式
+日志配置
 """
 
 import os
 import sys
 import logging
 from logging.handlers import RotatingFileHandler
-
+from datetime import datetime
 
 def setup_logging(config: dict, base_dir: str) -> logging.Logger:
     """配置日志系统"""
@@ -48,7 +47,6 @@ def setup_logging(config: dict, base_dir: str) -> logging.Logger:
     root_logger.addHandler(console_handler)
 
     logger = logging.getLogger(__name__)
-    from datetime import datetime
     logger.info("=" * 60)
     logger.info(f"启动时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     logger.info(f"日志文件: {log_file}")

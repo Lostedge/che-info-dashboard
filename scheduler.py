@@ -32,18 +32,45 @@ class Scheduler:
         self.logger.info(f"✅ 定时调度器已启动，间隔: {self.interval} 分钟，延迟: {self.delay} 分钟")
 
     def _sync_and_push_delayed(self):
-        """等待 delay 分钟后执行"""
+        """等待 delay 秒后执行"""
         if self.delay:
             time.sleep(self.delay * 60)
         self._sync_and_push()
 
     def _sync_and_push(self):
-        """同步数据并推送（暂为空实现，后续添加）"""
-        # TODO: 查询 Oracle 设备信息
-        # TODO: 查询 Oracle 作业记录
-        # TODO: 统计计算
-        # TODO: SSE 推送
-        self.logger.debug("定时任务执行完成")
+        """同步数据并推送"""
+        from db import QueryExecutor
+
+        period_start, period_end = self._get_period_bounds()
+        executor = QueryExecutor()
+
+        try:
+            stats = executor.get_cy_command_stats(period_start, period_end)
+            if stats is not None:
+                self.sse_server.push({
+                    'type': 'cy_command_stats',
+                    'period_start': period_start.isoformat(),
+                    'period_end': period_end.isoformat(),
+                    'data': stats,
+                })
+                self.logger.info(
+                    f"定时同步完成: {period_start:%H:%M} – {period_end:%H:%M}, "
+                    f"设备数: {len(stats)}"
+                )
+                print(stats)
+            else:
+                self.logger.error("定时同步失败，本轮跳过")
+        except Exception as e:
+            self.logger.error(f"定时同步异常: {e}", exc_info=True)
+
+    def _get_period_bounds(self) -> tuple:
+        """返回当前对齐到 interval 边界的时间窗口"""
+        from datetime import datetime, timedelta
+        now = datetime.now()
+        aligned = (now.minute // self.interval) * self.interval
+        period_end = now.replace(minute=aligned, second=0, microsecond=0)
+        period_start = period_end - timedelta(minutes=self.interval)
+        return period_start, period_end
 
     def stop(self):
         self._scheduler.shutdown(wait=False)
