@@ -4,44 +4,72 @@
 
 import time
 import logging
+from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
+
+from db import QueryExecutor
+
 
 class Scheduler:
     """定时调度器"""
 
     def __init__(self, sse_server, config: dict):
         self.sse_server = sse_server
-        self.interval = config.get('interval', 30)
         self.delay = config.get('delay', 2)
+        self.intervals = config.get('intervals', {
+            'info': 10,
+            'stats': 30,
+        })
         self.logger = logging.getLogger(__name__)
         self._scheduler = BackgroundScheduler()
 
     def start(self):
-        self._sync_and_push()
+        self._fetch_info()
+        self._fetch_stats()
 
-        trigger = CronTrigger(minute=f'*/{self.interval}')
         self._scheduler.add_job(
-            self._sync_and_push_delayed,
-            trigger=trigger,
-            id='sync_data',
-            name=f'每{self.interval}分钟同步',
+            self._fetch_info,
+            CronTrigger(minute=f'*/{self.intervals["info"]}'),
+            id='fetch_info',
+            name=f'设备信息（每{self.intervals["info"]}分钟）',
+        )
+        self._scheduler.add_job(
+            self._fetch_stats_delayed,
+            CronTrigger(minute=f'*/{self.intervals["stats"]}'),
+            id='fetch_stats',
+            name=f'作业统计（每{self.intervals["stats"]}分钟）',
         )
         self._scheduler.start()
 
-        self.logger.info(f"✅ 定时调度器已启动，间隔: {self.interval} 分钟，延迟: {self.delay} 分钟")
+        self.logger.info(
+            f"✅ 定时调度器已启动"
+        )
 
-    def _sync_and_push_delayed(self):
-        """等待 delay 秒后执行"""
-        if self.delay:
-            time.sleep(self.delay * 60)
-        self._sync_and_push()
+    def _fetch_stats_delayed(self):
+        time.sleep(self.delay * 60)
+        self._fetch_stats()
 
-    def _sync_and_push(self):
-        """同步数据并推送"""
-        from db import QueryExecutor
+    def _fetch_info(self):
+        """获取设备信息"""
+        executor = QueryExecutor()
 
-        period_start, period_end = self._get_period_bounds()
+        try:
+            info = executor.get_rtg_info()
+            if info is not None:
+                self.sse_server.push({
+                    'type': 'rtg_info',
+                    'data': info,
+                })
+                self.logger.info(f"设备信息获取完成，设备数: {len(info)}")
+            else:
+                self.logger.error("设备信息获取失败，本轮跳过")
+        except Exception as e:
+            self.logger.error(f"设备信息获取异常: {e}", exc_info=True)
+
+    def _fetch_stats(self):
+        """获取作业统计"""
+        period_start, period_end = self._get_period_bounds(self.intervals['stats'])
         executor = QueryExecutor()
 
         try:
@@ -54,22 +82,20 @@ class Scheduler:
                     'data': stats,
                 })
                 self.logger.info(
-                    f"定时同步完成: {period_start:%H:%M} – {period_end:%H:%M}, "
+                    f"作业统计获取完成: {period_start:%H:%M} – {period_end:%H:%M}, "
                     f"设备数: {len(stats)}"
                 )
-                print(stats)
             else:
-                self.logger.error("定时同步失败，本轮跳过")
+                self.logger.error("作业统计获取失败，本轮跳过")
         except Exception as e:
-            self.logger.error(f"定时同步异常: {e}", exc_info=True)
+            self.logger.error(f"作业统计获取异常: {e}", exc_info=True)
 
-    def _get_period_bounds(self) -> tuple:
-        """返回当前对齐到 interval 边界的时间窗口"""
-        from datetime import datetime, timedelta
+    def _get_period_bounds(self, interval_minutes: int) -> tuple:
+        """返回对齐到 interval 边界的时间窗口"""
         now = datetime.now()
-        aligned = (now.minute // self.interval) * self.interval
+        aligned = (now.minute // interval_minutes) * interval_minutes
         period_end = now.replace(minute=aligned, second=0, microsecond=0)
-        period_start = period_end - timedelta(minutes=self.interval)
+        period_start = period_end - timedelta(minutes=interval_minutes)
         return period_start, period_end
 
     def stop(self):

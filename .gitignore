@@ -30,3 +30,6 @@ Thumbs.db
 # 测试文件
 test_*
 note_*
+
+# Agent 数据库分析脚本
+scripts/
