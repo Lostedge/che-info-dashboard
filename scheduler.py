@@ -45,8 +45,10 @@ class Scheduler:
         self.logger.info(f"✅ 定时调度器已启动: {self.intervals["info"]}/{self.intervals["stats"]}+{self.delay}min")
 
     def _fetch_stats_delayed(self):
+        """延迟 self.delay 分钟获取作业统计"""
         time.sleep(self.delay * 60)
         self._fetch_stats()
+
 
     def _fetch_info(self):
         """获取设备信息"""
@@ -70,40 +72,24 @@ class Scheduler:
         period_start, period_end = self._get_period_bounds(self.intervals['stats'])
         executor = QueryExecutor()
 
-        # 场桥
-        try:
-            rtg_stats = executor.get_rtg_stats(period_start, period_end)
-            if rtg_stats is not None:
-                self.sse_server.push({
-                    'type': 'rtg_stats',
-                    'period_start': period_start.isoformat(),
-                    'period_end': period_end.isoformat(),
-                    'data': rtg_stats,
-                })
-                self.logger.info(
-                    f"作业统计获取完成: {period_start:%H:%M} – {period_end:%H:%M}, "
-                    f"设备数: {len(rtg_stats)}"
-                )
-            else:
-                self.logger.error("作业统计获取失败，本轮跳过")
-        except Exception as e:
-            self.logger.error(f"作业统计获取异常: {e}", exc_info=True)
+        device_counts = []
+        for label, fetcher, push_type in [
+            ('RTG', executor.get_rtg_stats, 'rtg_stats'),
+            ('QC', executor.get_qc_stats, 'qc_stats'),
+        ]:
+            try:
+                data = fetcher(period_start, period_end)
+                if data is not None:
+                    self.sse_server.push({'type': push_type, 'data': data})
+                    device_counts.append(f"{label}{len(data)}")
+                else:
+                    self.logger.error(f"{label}统计失败")
+            except Exception as e:
+                self.logger.error(f"{label}统计异常: {e}")
 
-        # 岸桥
-        try:
-            qc_stats = executor.get_qc_stats(period_start, period_end)
-            if qc_stats is not None:
-                self.sse_server.push({
-                    'type': 'qc_stats',
-                    'period_start': period_start.isoformat(),
-                    'period_end': period_end.isoformat(),
-                    'data': qc_stats,
-                })
-                self.logger.info(f"岸桥统计完成，设备数: {len(qc_stats)}")
-            else:
-                self.logger.error("岸桥统计失败，本轮跳过")
-        except Exception as e:
-            self.logger.error(f"岸桥统计异常: {e}", exc_info=True)
+        summary = ', '.join(device_counts) if device_counts else '无数据'
+        self.logger.info(f"作业统计: {period_start:%H:%M} - {period_end:%H:%M}, {summary}")
+
 
     def _get_period_bounds(self, interval_minutes: int) -> tuple:
         """返回对齐到 interval 边界的时间窗口"""
