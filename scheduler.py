@@ -42,7 +42,7 @@ class Scheduler:
         )
         self._scheduler.start()
 
-        self.logger.info(f"✅ 定时调度器已启动: {self.intervals["info"]}/{self.intervals["stats"]}+{self.delay}min")
+        self.logger.info(f"✅ 定时调度器已启动: {self.intervals['info']}/{self.intervals['stats']}+{self.delay}min")
 
     def _fetch_stats_delayed(self):
         """延迟 self.delay 分钟获取作业统计"""
@@ -54,18 +54,23 @@ class Scheduler:
         """获取设备信息"""
         executor = QueryExecutor()
 
-        try:
-            info = executor.get_mach_info()
-            if info is not None:
-                self.sse_server.push({
-                    'type': 'mach_info',
-                    'data': info,
-                })
-                self.logger.info(f"设备信息获取完成，设备数: {len(info)}")
-            else:
-                self.logger.error("设备信息获取失败，本轮跳过")
-        except Exception as e:
-            self.logger.error(f"设备信息获取异常: {e}", exc_info=True)
+        device_counts = []
+        for label, fetcher, push_type in [
+            ('RTG', executor.get_rtg_info, 'rtg_info'),
+            ('QC',  executor.get_qc_info,  'qc_info'),
+        ]:
+            try:
+                data = fetcher()
+                if data is not None:
+                    self.sse_server.push({'type': push_type, 'data': data})
+                    device_counts.append(f"{label}: {len(data)}")
+                else:
+                    self.logger.error(f"{label} 信息获取失败")
+            except Exception as e:
+                self.logger.error(f"{label} 信息获取异常: {e}")
+
+        summary = ', '.join(device_counts) if device_counts else '无数据'
+        self.logger.info(f"设备信息获取完成: {summary}")
 
     def _fetch_stats(self):
         """获取作业统计"""
@@ -81,11 +86,11 @@ class Scheduler:
                 data = fetcher(period_start, period_end)
                 if data is not None:
                     self.sse_server.push({'type': push_type, 'data': data})
-                    device_counts.append(f"{label}{len(data)}")
+                    device_counts.append(f"{label}: {len(data)}")
                 else:
-                    self.logger.error(f"{label}统计失败")
+                    self.logger.error(f"{label} 统计失败")
             except Exception as e:
-                self.logger.error(f"{label}统计异常: {e}")
+                self.logger.error(f"{label} 统计异常: {e}")
 
         summary = ', '.join(device_counts) if device_counts else '无数据'
         self.logger.info(f"作业统计: {period_start:%H:%M} - {period_end:%H:%M}, {summary}")

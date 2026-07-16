@@ -5,7 +5,7 @@ SQL 查询
 # 场桥作业统计
 RTG_STATS = """
     SELECT
-        CY_MACH_NO,
+        CY_MACH_NO                                                     AS id,
         COUNT(CASE WHEN CNTR_SIZ_COD = '20' THEN 1 END)                AS day_20,
         COUNT(CASE WHEN CNTR_SIZ_COD = '40' THEN 1 END)                AS day_40,
         COUNT(CASE WHEN CNTR_SIZ_COD = '20'
@@ -24,7 +24,7 @@ RTG_STATS = """
 # 岸桥作业统计
 QC_STATS = """
     SELECT
-        SHIP_MACH_NO,   
+        SHIP_MACH_NO                                                   AS id,   
         COUNT(CASE WHEN CNTR_SIZ_COD = '20' THEN 1 END)                AS day_20,
         COUNT(CASE WHEN CNTR_SIZ_COD = '40' THEN 1 END)                AS day_40,
         COUNT(CASE WHEN CNTR_SIZ_COD = '20'
@@ -40,7 +40,26 @@ QC_STATS = """
     ORDER BY SHIP_MACH_NO
 """
 
-# 设备信息
-MACH_INFO = """
-    -- 待完成
+# 场桥设备信息
+RTG_INFO = """
+    SELECT
+        SUBSTR(p.MACH_NO, 3)                        AS id,
+        p.CURRENT_ID                                AS status,
+        COALESCE(o.OPER_NAM, p.MACH_OPER_COD)       AS driver
+    FROM JZCT_TOS.CY_MACH_PLAC p
+    LEFT JOIN C_OPERATOR o ON p.MACH_OPER_COD = o.OPER_COD
+    WHERE p.MACH_NO LIKE 'CQ%'
+"""
+
+# 岸桥设备信息
+QC_INFO = """
+    SELECT
+        SUBSTR(p.MACH_NO, 3)                        AS id,
+        p.CURRENT_ID                                AS status,
+        COALESCE(o.OPER_NAM, p.MACH_OPER_COD)       AS driver,
+        COALESCE(v.SHIP_NAM, p.VOYAGE_NO)           AS ship_name
+    FROM JZCT_TOS.SHIP_MACH_PLAC p
+    LEFT JOIN C_OPERATOR o ON p.MACH_OPER_COD = o.OPER_COD
+    LEFT JOIN JZCT_TOS.SHIP_VOYAGE v ON p.VOYAGE_NO = v.VOYAGE_NO
+    WHERE p.MACH_NO LIKE 'AQ%'
 """

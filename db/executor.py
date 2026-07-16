@@ -78,6 +78,10 @@ class QueryExecutor:
             'period_end': period_end,
         })
     
-    def get_mach_info(self) -> Optional[list[dict]]:
-        """获取设备信息"""
-        return self.execute(queries.MACH_INFO, {})
+    def get_rtg_info(self) -> Optional[list[dict]]:
+        """获取场桥设备信息"""
+        return self.execute(queries.RTG_INFO, {})
+
+    def get_qc_info(self) -> Optional[list[dict]]:
+        """获取岸桥设备信息"""
+        return self.execute(queries.QC_INFO, {})
