@@ -2,8 +2,8 @@
 SQL 查询
 """
 
-# 场桥作业统计
-RTG_STATS = """
+# 堆场设备作业统计（RTG、FL、RS）
+YM_STATS = """
     SELECT
         CY_MACH_NO                                                     AS id,
         COUNT(CASE WHEN CNTR_SIZ_COD = '20' THEN 1 END)                AS day_20,
@@ -41,8 +41,8 @@ QC_STATS = """
     ORDER BY SHIP_MACH_NO
 """
 
-# 场桥设备信息
-RTG_INFO = """
+# 堆场设备信息（RTG、FL）
+YM_INFO = """
     SELECT
         SUBSTR(p.MACH_NO, 3)                        AS id,
         p.CURRENT_ID                                AS status,
@@ -50,6 +50,7 @@ RTG_INFO = """
     FROM JZCT_TOS.CY_MACH_PLAC p
     LEFT JOIN JZCT_CODE.C_OPERATOR o ON p.MACH_OPER_COD = o.OPER_COD
     WHERE p.MACH_NO LIKE 'CQ%'
+       OR p.MACH_NO LIKE 'DGJ%'
 """
 
 # 岸桥设备信息
@@ -57,6 +58,7 @@ QC_INFO = """
     SELECT
         SUBSTR(p.MACH_NO, 3)                        AS id,
         p.CURRENT_ID                                AS status,
+        p.CUR_BAY_NO                                AS bay,
         COALESCE(o.OPER_NAM, p.MACH_OPER_COD)       AS driver,
         COALESCE(v.SHIP_NAM, p.VOYAGE_NO)           AS ship_name
     FROM JZCT_TOS.SHIP_MACH_PLAC p

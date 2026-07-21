@@ -64,9 +64,9 @@ class QueryExecutor:
 
     # ========== 业务方法 ==========
 
-    def get_rtg_stats(self, period_start, period_end) -> Optional[list[dict]]:
-        """获取场桥作业统计"""
-        return self.execute(queries.RTG_STATS, {
+    def get_ym_stats(self, period_start, period_end) -> Optional[list[dict]]:
+        """获取堆场设备作业统计"""
+        return self.execute(queries.YM_STATS, {
             'period_start': period_start,
             'period_end': period_end,
         })
@@ -78,9 +78,9 @@ class QueryExecutor:
             'period_end': period_end,
         })
     
-    def get_rtg_info(self) -> Optional[list[dict]]:
-        """获取场桥设备信息"""
-        return self.execute(queries.RTG_INFO, {})
+    def get_ym_info(self) -> Optional[list[dict]]:
+        """获取堆场设备信息"""
+        return self.execute(queries.YM_INFO, {})
 
     def get_qc_info(self) -> Optional[list[dict]]:
         """获取岸桥设备信息"""
