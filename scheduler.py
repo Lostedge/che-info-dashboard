@@ -58,6 +58,7 @@ class Scheduler:
         for label, fetcher, push_type in [
             ('RTG', executor.get_rtg_info, 'rtg_info'),
             ('QC',  executor.get_qc_info,  'qc_info'),
+            ('SHIP', executor.get_ship_info, 'ship_info'),
         ]:
             try:
                 data = fetcher()

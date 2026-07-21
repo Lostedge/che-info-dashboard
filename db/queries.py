@@ -64,3 +64,16 @@ QC_INFO = """
     LEFT JOIN JZCT_TOS.SHIP_VOYAGE v ON p.VOYAGE_NO = v.VOYAGE_NO
     WHERE p.MACH_NO LIKE 'AQ%'
 """
+
+# 船舶信息
+SHIP_INFO = """
+    SELECT
+        p.VOYAGE_NO                                             AS id,
+        p.SHIP_STAT_ID                                          AS status,
+        p.SHIP_NAM || ' ' || p.I_VOYAGE || '/' || p.E_VOYAGE    AS ship_label,
+        p.ETA                                                   AS eta,
+        p.RTB                                                   AS rtb,
+        p.BEG_WORK_TIM                                          AS beg_work_tim
+    FROM JZCT_TOS_HIS.SHIP_VOYAGE p
+    WHERE p.SHIP_STAT_ID IN ('Y', 'C', 'D', 'E')
+"""

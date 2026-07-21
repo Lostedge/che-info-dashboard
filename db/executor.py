@@ -85,3 +85,7 @@ class QueryExecutor:
     def get_qc_info(self) -> Optional[list[dict]]:
         """获取岸桥设备信息"""
         return self.execute(queries.QC_INFO, {})
+    
+    def get_ship_info(self) -> Optional[list[dict]]:
+        """获取船舶信息"""
+        return self.execute(queries.SHIP_INFO, {})
