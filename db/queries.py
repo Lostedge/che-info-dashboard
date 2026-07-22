@@ -58,9 +58,9 @@ QC_INFO = """
     SELECT
         SUBSTR(p.MACH_NO, -3)                       AS id,
         p.CURRENT_ID                                AS status,
-        p.CUR_BAY_NO                                AS bay,
         COALESCE(o.OPER_NAM, p.MACH_OPER_COD)       AS driver,
-        COALESCE(v.SHIP_NAM, p.VOYAGE_NO)           AS ship_name
+        COALESCE(v.SHIP_NAM, p.VOYAGE_NO)           AS ship_name,
+        p.CUR_BAY_NO                                AS bay
     FROM JZCT_TOS.SHIP_MACH_PLAC p
     LEFT JOIN JZCT_CODE.C_OPERATOR o ON p.MACH_OPER_COD = o.OPER_COD
     LEFT JOIN JZCT_TOS_HIS.SHIP_VOYAGE v ON p.VOYAGE_NO = v.VOYAGE_NO

@@ -78,7 +78,7 @@ def main():
             }
             for state in all_states.values()
         ]
-        sse_server.push({'type': 'init', 'devices': devices})
+        sse_server.push({'type': 'init_loc', 'data': devices})
 
     SSEHandler.on_client_connect = on_connect
     sse_server.start()
@@ -112,14 +112,14 @@ def main():
             # 变化则推送 SSE
             if change_info.get('changed'):
                 sse_server.push({
-                    'type': 'rtg_location',
-                    'device': {
+                    'type': 'rtg_loc',
+                    'data': [{
                         'id': display_id,
                         'area': area,
                         'bay': bay,
                         'timestamp': timestamp,
-                    },
-                    'change_type': change_info.get('change_type', 'normal'),
+                        'change_type': change_info.get('change_type', 'normal'),
+                    }],
                 })
 
         except json.JSONDecodeError as e:

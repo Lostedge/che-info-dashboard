@@ -1,5 +1,5 @@
 """
-定时调度器
+定时调度器 - 定时获取设备信息和作业统计，并通过 SSE 推送给前端
 """
 
 import time
@@ -51,7 +51,7 @@ class Scheduler:
 
 
     def _fetch_info(self):
-        """获取设备信息"""
+        """获取并推送设备信息"""
         executor = QueryExecutor()
 
         device_counts = []
@@ -74,7 +74,7 @@ class Scheduler:
         self.logger.info(f"设备信息获取完成: {summary}")
 
     def _fetch_stats(self):
-        """获取作业统计"""
+        """获取并推送作业统计"""
         period_start, period_end = self._get_period_bounds(self.intervals['stats'])
         executor = QueryExecutor()
 
