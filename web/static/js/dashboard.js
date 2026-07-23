@@ -32,9 +32,7 @@ const State = {
 
   /** 统计在线设备数 */
   countOnline(list) {
-    return list.filter(d =>
-      d.area || d.bay || d.status === '01'
-    ).length;
+    return list.filter(d => d.status === '1').length;
   },
 };
 
@@ -98,7 +96,7 @@ const Header = {
   /** 判定船舶三态 */
   _shipState(s) {
     if (s.beg_work_tim) {
-      return { css: 'work',  label: '开工时间: ', time: this._fmt(s.beg_work_tim) };
+      return { css: 'work', label: '开工时间: ', time: this._fmt(s.beg_work_tim) };
     }
     if (s.rtb) {
       return { css: 'berth', label: '靠泊时间: ', time: this._fmt(s.rtb) };
@@ -167,10 +165,11 @@ const Cards = {
 
   _card(type, d) {
     const loc = this._loc(type, d);
+    const alive = d.status !== '0';
     return `<div class="card" title="${d.id}  ${d.driver || ''}  ${loc}">
       <span class="c-bar ${this._bar(d)}"></span>
       <span class="c-id">${d.id}</span>
-      <span class="c-driver">${d.driver || '--'}</span>
+      <span class="c-driver">${alive ? (d.driver || '--') : ''}</span>
       <span class="c-loc">${loc}</span></div>`;
   },
 
@@ -187,10 +186,12 @@ const Cards = {
 
   /** 状态条颜色 */
   _bar(d) {
-    if (!d.status && !d.area && !d.bay) return 'c-offline';
-    if (d.area || d.bay) return 'c-online';       // MQTT 有定位 = 在线
-    if (d.status === 'Y') return 'c-online';
-    return 'c-idle';
+    switch (d.status) {
+      case '1': return 'c-online';
+      case '2':
+      case '3': return 'c-fault';
+      default: return 'c-offline';
+    }
   },
 };
 
