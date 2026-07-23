@@ -1,0 +1,430 @@
+/* ============================================================
+   基础重置 & 缩放基准
+   ============================================================ */
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  font-size: calc(100vw / 192);
+
+  /* ---- 配色 ---- */
+  --c-bg:       #0d1117;
+  --c-surface:  #161b22;
+  --c-surface2: #1c2333;
+  --c-border:   #30363d;
+  --c-text:     #e6edf3;
+  --c-dim:      #8b949e;
+  --c-muted:    #484f58;
+
+  /* 语义色 */
+  --c-green:    #10b981;
+  --c-amber:    #d29922;
+  --c-blue:     #58a6ff;
+  --c-red:      #f85149;
+
+  /* 船舶卡片三态 */
+  --ship-work:  #238636;
+  --ship-berth: #9e6a03;
+  --ship-wait:  #1f6feb;
+
+  /* ---- 尺寸 ---- */
+  --header-h:  7rem;          /* ← 加高 */
+  --panel-pad: 1.4rem;
+  --card-h:    3rem;
+  --gap:       1rem;
+  --radius:    0.8rem;
+  --radius-sm: 0.5rem;
+}
+
+html, body {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  background: var(--c-bg);
+  color: var(--c-text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  max-width: 2560px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+header {
+  flex: 0 0 var(--header-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2.4rem;
+  background: var(--c-surface);
+  border-bottom: 1px solid var(--c-border);
+}
+
+/* 船舶卡片容器 */
+.ship-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* 单艘船舶卡片 */
+.ship-card {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0.5rem 1.4rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--c-border);
+  min-width: 17rem;
+  max-width: 20rem;
+  cursor: default;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background: var(--c-surface2);
+}
+
+.ship-card:hover {
+  border-color: var(--c-muted);
+}
+
+/* 船舶三种状态 */
+.ship-card.state-work  { border-color: var(--ship-work);  box-shadow: 0 0 8px rgba(35,134,54,0.15); }
+.ship-card.state-berth { border-color: var(--ship-berth); box-shadow: 0 0 8px rgba(158,106,3,0.15); }
+.ship-card.state-wait  { border-color: var(--ship-wait);  box-shadow: 0 0 8px rgba(31,111,235,0.15); }
+
+/* 船名 */
+.ship-card .sc-name {
+  font-size: 1.3rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 航次 */
+.sc-voyage {
+  color: var(--c-dim);
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.ship-card.state-work  .sc-ship { color: var(--c-green); }
+.ship-card.state-berth .sc-ship { color: var(--c-amber); }
+.ship-card.state-wait  .sc-ship { color: var(--c-blue); }
+
+.ship-card .sc-time {
+  font-size: 1.15rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--c-text);
+}
+
+.ship-placeholder {
+  font-size: 1.3rem;
+  color: var(--c-dim);
+}
+
+/* 标题 */
+.title {
+  flex-shrink: 0;
+  font-size: 2.2rem;
+  font-weight: 700;
+  letter-spacing: 0.4rem;
+  text-align: center;
+  padding: 0 2rem;
+  color: var(--c-text);
+}
+
+/* 右侧信息 */
+.header-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1.8rem;
+  font-size: 1.5rem;
+}
+
+.datetime {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.2rem;
+}
+
+.datetime .date {
+  font-size: 1.1rem;
+  color: var(--c-dim);
+  font-weight: 500;
+}
+
+.datetime .time {
+  font-size: 1.6rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.1rem;
+}
+
+/* 连接状态 */
+.conn-status {
+  position: relative;
+  padding-left: 1.8rem;
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--c-red);
+  user-select: none;
+}
+
+.conn-status::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  background: currentColor;
+  border-radius: 50%;
+  animation: conn-pulse 1.5s ease-in-out infinite;
+}
+
+.conn-status.connected {
+  color: var(--c-green);
+}
+
+@keyframes conn-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
+/* ============================================================
+   MAIN GRID
+   ============================================================ */
+
+main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(23rem, 17%) 1fr minmax(23rem, 17%);
+  gap: var(--gap);
+  padding: var(--gap);
+  min-height: 0;
+}
+
+/* ============================================================
+   PANEL 通用
+   ============================================================ */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--c-surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--c-border);
+  overflow: hidden;
+  min-height: 0;
+}
+
+.panel-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.8rem var(--panel-pad);
+  font-size: 1.3rem;
+  font-weight: 600;
+  border-bottom: 1px solid var(--c-border);
+  color: var(--c-dim);
+  letter-spacing: 0.05rem;
+}
+
+.panel-count {
+  color: var(--c-green);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+/* ============================================================
+   卡片列表
+   ============================================================ */
+
+.card-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.5rem 0.7rem;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* 单行设备卡片 */
+.card {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.35rem 1rem;
+  min-height: var(--card-h);
+  border-radius: var(--radius-sm);
+  background: var(--c-surface2);
+  border: 1px solid transparent;
+  transition: border-color 0.15s, background 0.15s;
+  font-size: 1.25rem;
+}
+
+.card:hover {
+  border-color: var(--c-muted);
+  background: rgba(255,255,255,0.04);
+}
+
+/* 状态指示条 */
+.card .c-bar {
+  flex-shrink: 0;
+  width: 0.35rem;
+  height: 1.8rem;
+  border-radius: 2px;
+  background: var(--c-muted);
+  transition: background 0.3s;
+}
+
+.c-bar.c-online  { background: var(--c-green); }
+.c-bar.c-offline { background: var(--c-muted); }
+.c-bar.c-fault   { background: var(--c-red);  }
+
+.card .c-id {
+  flex-shrink: 0;
+  width: 3.8rem;
+  font-weight: 700;
+  font-size: 1.3rem;
+}
+
+.card .c-driver {
+  flex-shrink: 0;
+  width: 6rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--c-text);
+}
+
+.card .c-loc {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+  color: var(--c-dim);
+  font-size: 1.15rem;
+}
+
+/* 占位文本 */
+.card-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 1.3rem;
+  color: var(--c-dim);
+}
+
+/* ============================================================
+   右侧分上下区
+   ============================================================ */
+
+.panel-right {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.right-section {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.right-top {
+  flex: 1;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.right-bottom {
+  flex: 1;
+}
+
+/* ============================================================
+   中间图表区
+   ============================================================ */
+
+.panel-center {
+  gap: 0;
+}
+
+.chart-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.chart-divider {
+  flex-shrink: 0;
+  height: 1px;
+  background: var(--c-border);
+  margin: 0 var(--panel-pad);
+}
+
+.chart-placeholder {
+  font-size: 1.5rem;
+  color: var(--c-dim);
+  letter-spacing: 0.15rem;
+}
+
+/* ============================================================
+   滚动条
+   ============================================================ */
+
+.card-list::-webkit-scrollbar {
+  width: 0.3rem;
+}
+
+.card-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.card-list::-webkit-scrollbar-thumb {
+  background: var(--c-border);
+  border-radius: 3px;
+}
+
+/* ============================================================
+   宽屏 / 小屏
+   ============================================================ */
+
+@media (min-width: 2560px) {
+  :root { font-size: 13.33px; }
+}
+
+@media (max-width: 1280px) {
+  :root { font-size: calc(100vw / 128); }
+}

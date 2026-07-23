@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>机械设备监控看板</title>
+<link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+
+  <!-- ========== HEADER ========== -->
+  <header>
+    <div class="ship-info" id="ship-info">
+      <span class="ship-placeholder">等待数据...</span>
+    </div>
+    <h1 class="title">机械设备监控看板</h1>
+    <div class="header-right">
+      <div class="datetime">
+        <span class="date" id="date-text">----/--/--</span>
+        <span class="time" id="time-text">--:--:--</span>
+      </div>
+      <span class="conn-status" id="conn-status">未连接</span>
+    </div>
+  </header>
+
+  <!-- ========== MAIN ========== -->
+  <main>
+    <!-- 左侧：场桥 -->
+    <section class="panel panel-left">
+      <div class="panel-header">
+        <span>场桥</span>
+        <span class="panel-count" id="rtg-count">0</span>
+        <span>台</span>
+      </div>
+      <div class="card-list" id="rtg-cards">
+        <div class="card-placeholder">等待场桥数据...</div>
+      </div>
+    </section>
+
+    <!-- 中间：图表 -->
+    <section class="panel panel-center">
+      <div class="chart-area" id="chart-rtg">
+        <div class="chart-placeholder">场桥作业量</div>
+      </div>
+      <div class="chart-divider"></div>
+      <div class="chart-area" id="chart-qc-fl">
+        <div class="chart-placeholder">岸桥 &amp; 堆高机作业量</div>
+      </div>
+    </section>
+
+    <!-- 右侧：岸桥 + 堆高机 -->
+    <section class="panel panel-right">
+      <div class="right-section right-top">
+        <div class="panel-header">
+          <span>岸桥</span>
+          <span class="panel-count" id="qc-count">0</span>
+          <span>台</span>
+        </div>
+        <div class="card-list" id="qc-cards">
+          <div class="card-placeholder">等待岸桥数据...</div>
+        </div>
+      </div>
+      <div class="right-section right-bottom">
+        <div class="panel-header">
+          <span>堆高机</span>
+          <span class="panel-count" id="fl-count">0</span>
+          <span>台</span>
+        </div>
+        <div class="card-list" id="fl-cards">
+          <div class="card-placeholder">等待堆高机数据...</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ========== SCRIPTS ========== -->
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
