@@ -17,6 +17,7 @@
   --c-surface2: #1c2333;
   --c-border:   #30363d;
   --c-text:     #e6edf3;
+  --c-soft:     #b0b8c0;
   --c-dim:      #8b949e;
   --c-muted:    #484f58;
 
@@ -32,7 +33,7 @@
   --ship-wait:  #1f6feb;
 
   /* ---- 尺寸 ---- */
-  --header-h:  7rem;          /* ← 加高 */
+  --header-h:  7rem;
   --panel-pad: 1.4rem;
   --card-h:    3rem;
   --gap:       1rem;
@@ -119,8 +120,6 @@ header {
 /* 航次 */
 .sc-voyage {
   color: var(--c-dim);
-  font-size: 1.3rem;
-  font-weight: 600;
 }
 
 .ship-card.state-work  .sc-ship { color: var(--c-green); }
@@ -158,20 +157,19 @@ header {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 1.8rem;
+  gap: 2rem;
   font-size: 1.5rem;
 }
 
 .datetime {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.2rem;
+  align-items: center;
+  gap: 1rem;
 }
 
 .datetime .date {
-  font-size: 1.1rem;
-  color: var(--c-dim);
+  font-size: 1.6rem;
+  color: var(--c-soft);
   font-weight: 500;
 }
 
@@ -247,17 +245,26 @@ main {
   align-items: center;
   justify-content: space-between;
   padding: 0.8rem var(--panel-pad);
-  font-size: 1.3rem;
-  font-weight: 600;
+  font-size: 1.6rem;
+  font-weight: 500;
   border-bottom: 1px solid var(--c-border);
   color: var(--c-dim);
   letter-spacing: 0.05rem;
+}
+
+.panel-title {
+  color: var(--c-soft);
+  font-weight: 700;
 }
 
 .panel-count {
   color: var(--c-green);
   font-size: 1.5rem;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  display: inline-block;
+  min-width: 2rem;
+  text-align: right;
 }
 
 /* ============================================================
@@ -329,7 +336,7 @@ main {
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: right;
-  color: var(--c-dim);
+  color: var(--c-soft);
   font-size: 1.15rem;
 }
 

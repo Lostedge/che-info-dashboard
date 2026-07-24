@@ -96,12 +96,12 @@ const Header = {
   /** 判定船舶三态 */
   _shipState(s) {
     if (s.beg_work_tim) {
-      return { css: 'work', label: '开工时间: ', time: this._fmt(s.beg_work_tim) };
+      return { css: 'work', label: '开工时间：', time: this._fmt(s.beg_work_tim) };
     }
     if (s.rtb) {
-      return { css: 'berth', label: '靠泊时间: ', time: this._fmt(s.rtb) };
+      return { css: 'berth', label: '靠泊时间：', time: this._fmt(s.rtb) };
     }
-    return { css: 'wait', label: '预计抵港: ', time: this._fmt(s.eta) || '--' };
+    return { css: 'wait', label: '预计抵港：', time: this._fmt(s.eta) || '--' };
   },
 
   _fmt(raw) {
