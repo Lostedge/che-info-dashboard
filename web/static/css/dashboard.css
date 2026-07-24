@@ -350,6 +350,9 @@ main {
   font-size: 1.15rem;
 }
 
+.card.offline .c-id  { color: var(--c-soft); }
+.card.offline .c-loc { color: var(--c-dim);  }
+
 /* 占位文本 */
 .card-placeholder {
   display: flex;

@@ -164,28 +164,27 @@ const Cards = {
   /* -------- 内部 -------- */
 
   _card(type, d) {
-    const loc = this._loc(type, d);
-    const alive = d.status !== '0';
+    const alive  = d.status !== '0';
+    const loc    = this._loc(type, d);
+    const driver = alive ? (d.driver || '') : '';
+    const ship   = (alive && type === 'qc') ? (d.ship_name || '').slice(0, 10) : '';
+    const locStr = (alive || type === 'rtg') ? loc : '';
 
-    let extra = '';
-    if (type === 'qc') {
-      extra = `<span class="c-ship">${(d.ship_name || '').substring(0, 14) || '--'}</span>`;
-    }
-
-    return `<div class="card" title="${d.id}  ${d.driver || ''}  ${loc}">
+    return `<div class="card${alive ? '' : ' offline'}" title="${d.id}  ${d.driver || ''}  ${loc}">
       <span class="c-bar ${this._bar(d)}"></span>
       <span class="c-id">${d.id}</span>
-      <span class="c-driver">${alive ? (d.driver || '--') : ''}</span>
-      ${extra}
-      <span class="c-loc">${loc}</span></div>`;
+      <span class="c-driver">${driver}</span>
+      ${type === 'qc' ? `<span class="c-ship">${ship}</span>` : ''}
+      <span class="c-loc">${locStr}</span>
+    </div>`;
   },
 
   _loc(type, d) {
-    if (type === 'qc') return d.bay || '--';
+    if (type === 'qc') return d.bay || '';
     if (d.area && d.bay) return `${d.area} - ${d.bay}`;
     if (d.area) return d.area;
     if (d.bay)  return d.bay;
-    return '--';
+    return '';
   },
 
   /** 状态条颜色 */
