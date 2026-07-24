@@ -166,18 +166,22 @@ const Cards = {
   _card(type, d) {
     const loc = this._loc(type, d);
     const alive = d.status !== '0';
+
+    let extra = '';
+    if (type === 'qc') {
+      extra = `<span class="c-ship">${(d.ship_name || '').substring(0, 14) || '--'}</span>`;
+    }
+
     return `<div class="card" title="${d.id}  ${d.driver || ''}  ${loc}">
       <span class="c-bar ${this._bar(d)}"></span>
       <span class="c-id">${d.id}</span>
       <span class="c-driver">${alive ? (d.driver || '--') : ''}</span>
+      ${extra}
       <span class="c-loc">${loc}</span></div>`;
   },
 
   _loc(type, d) {
-    if (type === 'qc') {
-      const ship = (d.ship_name || '').substring(0, 12);
-      return ship ? `${ship}  ${d.bay || ''}` : (d.bay || '--');
-    }
+    if (type === 'qc') return d.bay || '--';
     if (d.area && d.bay) return `${d.area} - ${d.bay}`;
     if (d.area) return d.area;
     if (d.bay)  return d.bay;

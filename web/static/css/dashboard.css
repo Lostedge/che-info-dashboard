@@ -330,6 +330,16 @@ main {
   color: var(--c-text);
 }
 
+.card .c-ship {
+  flex: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+  color: var(--c-soft);
+  font-size: 1.15rem;
+}
+
 .card .c-loc {
   flex: 1;
   overflow: hidden;
