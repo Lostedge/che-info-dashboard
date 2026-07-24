@@ -97,6 +97,10 @@ class SSEHandler(BaseHTTPRequestHandler):
     def _handle_static(self):
         static_dir = self._get_static_dir()
         rel_path = self.path.lstrip('/')
+
+        if not rel_path:
+            rel_path = 'index.html'
+
         file_path = os.path.normpath(os.path.join(static_dir, rel_path))
         if not file_path.startswith(os.path.normpath(static_dir) + os.sep):
             self.send_response(403)
