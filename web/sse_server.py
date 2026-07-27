@@ -10,6 +10,7 @@ import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from typing import Optional
+from datetime import datetime, date
 import logging
 
 
@@ -127,7 +128,7 @@ class SSEHandler(BaseHTTPRequestHandler):
         with cls.lock:
             if not cls.clients:
                 return
-            json_data = json.dumps(data, ensure_ascii=False)
+            json_data = json.dumps(data, ensure_ascii=False, default=_json_serial)
             message = f"data: {json_data}\n\n".encode('utf-8')
             dead_clients = []
             for client in cls.clients:
@@ -174,3 +175,9 @@ class SSEServer:
         if self.server:
             self.server.shutdown()
             self.logger.info("SSE 服务器已停止")
+
+def _json_serial(obj):
+    """JSON 序列化：datetime → ISO 字符串"""
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    raise TypeError(f"类型 {type(obj).__name__} 无法序列化为JSON格式")
