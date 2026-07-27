@@ -28,12 +28,18 @@ const Charts = {
       scales: {
         x: {
           stacked: true,
-          ticks: { color: '#8b949e', font: { size: 10 } },
+          ticks: { 
+            color: '#b0b8c0', 
+            font: { family: "'Segoe UI'", size: 14, weight: 'bold' },
+          },
           grid: { display: false },
         },
         y: {
           stacked: true,
-          ticks: { color: '#8b949e', font: { size: 10 } },
+          ticks: { 
+            color: '#b0b8c0', 
+            font: { family: "'Segoe UI'", size: 12, weight: 'bold' },
+          },
           grid: { color: '#30363d' },
           beginAtZero: true,
         },
@@ -48,8 +54,10 @@ const Charts = {
         data: {
           labels: [],
           datasets: [
-            { label: '20尺', data: [], backgroundColor: '#58a6ff', borderRadius: 2 },
-            { label: '40尺', data: [], backgroundColor: '#10b981', borderRadius: 2 },
+            { label: '20尺', data: [], backgroundColor: '#60a5fa',
+              borderRadius: 4, maxBarThickness: 32 },
+            { label: '40尺', data: [], backgroundColor: '#34d399',
+              borderRadius: 4, maxBarThickness: 32 },
           ],
         },
         options: baseOpts,
