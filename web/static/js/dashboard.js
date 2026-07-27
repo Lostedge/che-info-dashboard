@@ -247,8 +247,14 @@ const SSEClient = {
         break;
 
       case 'ym_stats':
+        State.merge(data);
+        Charts.update('chart-rtg', State.getByType('2'));
+        Charts.update('chart-fl',  State.getByType('3'));
+        break;
+
       case 'qc_stats':
         State.merge(data);
+        Charts.update('chart-qc', State.getByType('1'));
         break;
     }
   },
@@ -261,5 +267,6 @@ const SSEClient = {
 
 document.addEventListener('DOMContentLoaded', () => {
   Header.init();
+  Charts.init();
   SSEClient.init();
 });

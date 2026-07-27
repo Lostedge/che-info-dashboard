@@ -400,24 +400,59 @@ main {
 .chart-area {
   flex: 1;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  position: relative;
+}
+
+.chart-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem var(--panel-pad);    /* 0.8rem */
+}
+
+.chart-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--c-soft);
+}
+
+.chart-body {
+  flex: 1;
+  padding: 0 2rem 2rem 2rem;
+  min-height: 0;
 }
 
 .chart-divider {
   flex-shrink: 0;
   height: 1px;
-  background: var(--c-border);
+  background: var(--c-muted);
   margin: 0 var(--panel-pad);
 }
 
-.chart-placeholder {
-  font-size: 1.5rem;
-  color: var(--c-dim);
-  letter-spacing: 0.15rem;
+.chart-row {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.chart-row .chart-area {
+  flex: 1;
+}
+
+.chart-v-divider {
+  flex-shrink: 0;
+  width: 1px;
+  background: var(--c-muted);
+  margin: var(--panel-pad) 0;
+}
+
+.chart-area canvas {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 /* ============================================================

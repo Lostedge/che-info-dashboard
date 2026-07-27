@@ -38,12 +38,33 @@
 
     <!-- 中间：图表 -->
     <section class="panel panel-center">
-      <div class="chart-area" id="chart-rtg">
-        <div class="chart-placeholder">场桥作业量</div>
+      <div class="chart-area">
+        <div class="chart-header">
+          <span class="chart-title">当日场桥作业量</span>
+        </div>
+        <div class="chart-body">        
+          <canvas id="chart-rtg"></canvas>
+        </div>
       </div>
       <div class="chart-divider"></div>
-      <div class="chart-area" id="chart-qc-fl">
-        <div class="chart-placeholder">岸桥 &amp; 堆高机作业量</div>
+      <div class="chart-row">
+        <div class="chart-area">
+          <div class="chart-header">
+            <span class="chart-title">当日岸桥作业量</span>
+          </div>
+          <div class="chart-body">        
+            <canvas id="chart-qc"></canvas>
+          </div>
+        </div>
+        <div class="chart-v-divider"></div>
+        <div class="chart-area">
+          <div class="chart-header">
+            <span class="chart-title">当日堆高机作业量</span>
+          </div>
+          <div class="chart-body">        
+            <canvas id="chart-fl"></canvas>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -71,6 +92,8 @@
   </main>
 
   <!-- ========== SCRIPTS ========== -->
+  <script src="libs/chart.umd.min.js"></script>
+  <script src="js/charts.js"></script>
   <script src="js/dashboard.js"></script>
 </body>
 </html>
