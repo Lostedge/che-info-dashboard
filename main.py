@@ -67,8 +67,9 @@ def main():
         port=sse_cfg.get('port', 8765)
     )
 
-    # 设置客户端连接回调（推送当前所有设备状态）
+    # 设置客户端连接回调
     def on_connect():
+        # 推送所有设备的初始定位状态
         all_states = detector.get_all_states()
         devices = [
             {
@@ -79,6 +80,11 @@ def main():
             for state in all_states.values()
         ]
         sse_server.push({'type': 'init_loc', 'data': devices})
+
+        # 推送 DB 缓存数据
+        for push_type, data in scheduler.get_cached_data().items():
+            if data:
+                sse_server.push({'type': push_type, 'data': data})
 
     SSEHandler.on_client_connect = on_connect
     sse_server.start()

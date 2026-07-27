@@ -23,6 +23,7 @@ class Scheduler:
         })
         self.logger = logging.getLogger(__name__)
         self._scheduler = BackgroundScheduler()
+        self._cache: dict[str, list] = {}
 
     def start(self):
         self._fetch_info()
@@ -64,6 +65,7 @@ class Scheduler:
                 data = fetcher()
                 if data is not None:
                     self.sse_server.push({'type': push_type, 'data': data})
+                    self._cache[push_type] = data
                     device_counts.append(f"{label}: {len(data)}")
                 else:
                     self.logger.error(f"{label} 信息获取失败")
@@ -87,6 +89,7 @@ class Scheduler:
                 data = fetcher(period_start, period_end)
                 if data is not None:
                     self.sse_server.push({'type': push_type, 'data': data})
+                    self._cache[push_type] = data
                     device_counts.append(f"{label}: {len(data)}")
                 else:
                     self.logger.error(f"{label} 统计失败")
@@ -104,6 +107,10 @@ class Scheduler:
         period_end = now.replace(minute=aligned, second=0, microsecond=0)
         period_start = period_end - timedelta(minutes=interval_minutes)
         return period_start, period_end
+
+    def get_cached_data(self) -> dict:
+        """返回所有缓存数据，供新客户端连接时推送"""
+        return dict(self._cache)
 
     def stop(self):
         self._scheduler.shutdown(wait=False)
