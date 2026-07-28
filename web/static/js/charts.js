@@ -17,10 +17,10 @@ const Charts = {
           align: 'end',
           labels: {
             color: '#b0b8c0',
-            font: { size: 12 },
+            font: { size: 14 },
             padding: 6,
-            boxWidth: 12,
-            boxHeight: 12,
+            boxWidth: 14,
+            boxHeight: 14,
             usePointStyle: false,
           },
         },
@@ -30,7 +30,7 @@ const Charts = {
           stacked: true,
           ticks: { 
             color: '#b0b8c0', 
-            font: { family: "'Segoe UI'", size: 14, weight: 'bold' },
+            font: { family: "'Segoe UI'", size: 16, weight: 'bold' },
           },
           grid: { display: false },
         },
@@ -38,7 +38,7 @@ const Charts = {
           stacked: true,
           ticks: { 
             color: '#b0b8c0', 
-            font: { family: "'Segoe UI'", size: 12, weight: 'bold' },
+            font: { family: "'Segoe UI'", size: 13, weight: 'bold' },
           },
           grid: { color: '#30363d' },
           beginAtZero: true,

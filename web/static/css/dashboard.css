@@ -36,6 +36,7 @@
   --header-h:  7rem;
   --panel-pad: 1.4rem;
   --card-h:    3rem;
+  --card-gap:  0.3rem;
   --gap:       1rem;
   --radius:    0.8rem;
   --radius-sm: 0.5rem;
@@ -275,7 +276,7 @@ main {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: var(--card-gap);
   padding: 0.5rem 0.7rem;
   overflow-y: auto;
   min-height: 0;
@@ -304,7 +305,7 @@ main {
 .card .c-bar {
   flex-shrink: 0;
   width: 0.35rem;
-  height: 1.8rem;
+  height: calc(var(--card-h) * 0.6);
   border-radius: 2px;
   background: var(--c-muted);
   transition: background 0.3s;
@@ -337,7 +338,7 @@ main {
   white-space: nowrap;
   text-align: right;
   color: var(--c-soft);
-  font-size: 1.15rem;
+  font-size: 1.3rem;
 }
 
 .card .c-loc {
@@ -347,7 +348,8 @@ main {
   white-space: nowrap;
   text-align: right;
   color: var(--c-soft);
-  font-size: 1.15rem;
+  font-size: 1.4rem;
+  font-family: "Cascadia Code", "Consolas", "SF Mono", monospace;
 }
 
 .card.offline .c-id  { color: var(--c-soft); }
