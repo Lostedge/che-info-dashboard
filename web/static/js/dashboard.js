@@ -250,11 +250,13 @@ const SSEClient = {
         State.merge(data);
         Charts.update('chart-rtg', State.getByType('2'));
         Charts.update('chart-fl',  State.getByType('3'));
+        Charts.syncYAxis();
         break;
 
       case 'qc_stats':
         State.merge(data);
         Charts.update('chart-qc', State.getByType('1'));
+        Charts.syncYAxis();
         break;
     }
   },

@@ -76,4 +76,27 @@ const Charts = {
     chart.data.datasets[1].data = list.map(d => d.day_40 ?? 0);
     chart.update('none');
   },
+
+  /** 统一图表的纵坐标刻度 */
+  syncYAxis() {
+    let max = 0;
+
+    for (const chart of Object.values(this.instances)) {
+      if (!chart.data.labels.length) continue;
+      for (let i = 0; i < chart.data.labels.length; i++) {
+        let stacked = 0;
+        for (const ds of chart.data.datasets) {
+          stacked += (ds.data[i] ?? 0);
+        }
+        if (stacked > max) max = stacked;
+      }
+    }
+
+    max = Math.ceil(max * 1.05);
+
+    for (const chart of Object.values(this.instances)) {
+      chart.config.options.scales.y.suggestedMax = max;
+      chart.update();
+    }
+  },
 };
