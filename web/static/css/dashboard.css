@@ -27,10 +27,14 @@
   --c-blue:     #58a6ff;
   --c-red:      #f85149;
 
-  /* 船舶卡片三态 */
+  /* 船舶卡片 */
   --ship-work:  #238636;
   --ship-berth: #9e6a03;
   --ship-wait:  #1f6feb;
+
+  /* 图表色 */
+  --chart-20:   #60a5fa;
+  --chart-40:   #34d399;
 
   /* ---- 尺寸 ---- */
   --header-h:  7rem;
@@ -443,8 +447,8 @@ main {
   font-variant-numeric: tabular-nums;
 }
 
-.cs-20 .cs-val { color: #60a5fa; }
-.cs-40 .cs-val { color: #34d399; }
+.cs-20 .cs-val { color: var(--chart-20); }
+.cs-40 .cs-val { color: var(--chart-40); }
 .cs-nat .cs-val { color: var(--c-soft); }
 .cs-teu .cs-val { color: var(--c-soft); }
 

@@ -6,7 +6,22 @@
 const Charts = {
   instances: {},
 
+  /** 从 CSS 读取颜色 */
+  getColors() {
+    const s = getComputedStyle(document.documentElement);
+    return {
+      bar20: s.getPropertyValue('--chart-20').trim() || '#60a5fa',
+      bar40: s.getPropertyValue('--chart-40').trim() || '#34d399',
+      text:  s.getPropertyValue('--c-text').trim() || '#e6edf3',
+      soft:  s.getPropertyValue('--c-soft').trim() || '#b0b8c0',
+      dim:   s.getPropertyValue('--c-dim').trim() || '#8b949e',
+      grid:  s.getPropertyValue('--c-border').trim() || '#30363d',
+    };
+  },  
+
   init() {
+    const c = this.getColors();
+
     const baseOpts = {
       responsive: true,
       maintainAspectRatio: false,
@@ -16,7 +31,7 @@ const Charts = {
           position: 'top',
           align: 'end',
           labels: {
-            color: '#b0b8c0',
+            color: c.soft,
             font: { size: 14 },
             padding: 6,
             boxWidth: 14,
@@ -29,7 +44,7 @@ const Charts = {
         x: {
           stacked: true,
           ticks: { 
-            color: '#b0b8c0', 
+            color: c.text, 
             font: { family: "'Segoe UI'", size: 16, weight: 'bold' },
           },
           grid: { display: false },
@@ -37,10 +52,10 @@ const Charts = {
         y: {
           stacked: true,
           ticks: { 
-            color: '#b0b8c0', 
+            color: c.soft, 
             font: { family: "'Segoe UI'", size: 13, weight: 'bold' },
           },
-          grid: { color: '#30363d' },
+          grid: { color: c.grid },
           beginAtZero: true,
         },
       },
@@ -54,9 +69,9 @@ const Charts = {
         data: {
           labels: [],
           datasets: [
-            { label: '20尺', data: [], backgroundColor: '#60a5fa',
+            { label: '20尺', data: [], backgroundColor: c.bar20,
               borderRadius: 4, maxBarThickness: 32 },
-            { label: '40尺', data: [], backgroundColor: '#34d399',
+            { label: '40尺', data: [], backgroundColor: c.bar40,
               borderRadius: 4, maxBarThickness: 32 },
           ],
         },
