@@ -412,7 +412,7 @@ main {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem var(--panel-pad);    /* 0.8rem */
+  padding: 1rem 3rem 1rem var(--panel-pad);    /* 0.8rem */
 }
 
 .chart-title {
@@ -420,6 +420,33 @@ main {
   font-weight: 700;
   color: var(--c-soft);
 }
+
+.chart-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 1.4rem;
+  font-size: 1.5rem;
+}
+
+.cs-item {
+  white-space: nowrap;
+}
+
+.cs-label {
+  font-weight: 500;
+  color: var(--c-dim);
+  margin-right: 0.3rem;
+}
+
+.cs-val {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.cs-20 .cs-val { color: #60a5fa; }
+.cs-40 .cs-val { color: #34d399; }
+.cs-nat .cs-val { color: var(--c-soft); }
+.cs-teu .cs-val { color: var(--c-soft); }
 
 .chart-body {
   flex: 1;

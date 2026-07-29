@@ -99,4 +99,29 @@ const Charts = {
       chart.update();
     }
   },
+
+  /** 更新所有 chart-header 总计 */
+  updateSummaries() {
+    const map = {
+      'summary-rtg': State.getByType('2'),
+      'summary-qc':  State.getByType('1'),
+      'summary-fl':  State.getByType('3'),
+    };
+
+    for (const [id, list] of Object.entries(map)) {
+      const el = document.getElementById(id);
+      if (!el) continue;
+
+      const s20 = list.reduce((s, d) => s + (d.day_20 ?? 0), 0);
+      const s40 = list.reduce((s, d) => s + (d.day_40 ?? 0), 0);
+      const nat = s20 + s40;
+      const teu = s20 + s40 * 2;
+
+      el.innerHTML = `
+        <span class="cs-item cs-20"><span class="cs-label">20尺</span><span class="cs-val">${s20}</span></span>
+        <span class="cs-item cs-40"><span class="cs-label">40尺</span><span class="cs-val">${s40}</span></span>
+        <span class="cs-item cs-nat"><span class="cs-label">自然箱</span><span class="cs-val">${nat}</span></span>
+        <span class="cs-item cs-teu"><span class="cs-label">TEU</span><span class="cs-val">${teu}</span></span>`;
+    }
+  },
 };
