@@ -10,9 +10,6 @@
 
   <!-- ========== HEADER ========== -->
   <header>
-    <div class="ship-info" id="ship-info">
-      <span class="ship-placeholder">等待数据...</span>
-    </div>
     <h1 class="title">机械设备监控看板</h1>
     <div class="header-right">
       <div class="datetime">
@@ -36,36 +33,41 @@
       </div>
     </section>
 
-    <!-- 中间：图表 -->
-    <section class="panel panel-center">
-      <div class="chart-area">
-        <div class="chart-header">
-          <span class="chart-title">当日场桥作业量</span>
-          <span class="chart-summary" id="summary-rtg"></span>
-        </div>
-        <div class="chart-body">        
-          <canvas id="chart-rtg"></canvas>
-        </div>
+    <!-- 中间：船舶信息、图表 -->
+    <section class="center-col">
+      <div class="panel ship-panel" id="ship-info">
+        <span class="ship-placeholder">等待数据...</span>
       </div>
-      <div class="chart-divider"></div>
-      <div class="chart-row">
+      <div class="panel chart-panel">
         <div class="chart-area">
           <div class="chart-header">
-            <span class="chart-title">当日岸桥作业量</span>
-            <span class="chart-summary" id="summary-qc"></span>
+            <span class="chart-title">当日场桥作业量</span>
+            <span class="chart-summary" id="summary-rtg"></span>
           </div>
           <div class="chart-body">        
-            <canvas id="chart-qc"></canvas>
+            <canvas id="chart-rtg"></canvas>
           </div>
         </div>
-        <div class="chart-v-divider"></div>
-        <div class="chart-area">
-          <div class="chart-header">
-            <span class="chart-title">当日堆高机作业量</span>
-            <span class="chart-summary" id="summary-fl"></span>
+        <div class="chart-divider"></div>
+        <div class="chart-row">
+          <div class="chart-area">
+            <div class="chart-header">
+              <span class="chart-title">当日岸桥作业量</span>
+              <span class="chart-summary" id="summary-qc"></span>
+            </div>
+            <div class="chart-body">        
+              <canvas id="chart-qc"></canvas>
+            </div>
           </div>
-          <div class="chart-body">        
-            <canvas id="chart-fl"></canvas>
+          <div class="chart-v-divider"></div>
+          <div class="chart-area">
+            <div class="chart-header">
+              <span class="chart-title">当日堆高机作业量</span>
+              <span class="chart-summary" id="summary-fl"></span>
+            </div>
+            <div class="chart-body">        
+              <canvas id="chart-fl"></canvas>
+            </div>
           </div>
         </div>
       </div>
