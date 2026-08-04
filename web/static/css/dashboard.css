@@ -6,6 +6,8 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none; 
 }
 
 :root {
@@ -356,25 +358,32 @@ main {
   gap: 1rem;
   padding: 1rem;
   overflow: hidden;
-  background: var(--c-surface2);
-  border: 1px solid var(--c-muted);
+  /* background: var(--c-surface2);
+  border: 1px solid var(--c-muted); */
 }
 
 /* 单艘船舶卡片 */
 .ship-card {
-  flex-shrink: 0;
+  flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 0.4rem;
   padding: 0.5rem 1.4rem;
-  min-width: 17rem;
-  max-width: 20rem;
+  min-width: 18rem;
   border-radius: var(--radius-sm);
   border: 1px solid var(--c-border);
   background: var(--c-surface2);
   box-shadow: 0 0 0.8rem rgba(0, 0, 0, 0.35);
   transition: border-color 0.2s;
+}
+
+.ship-card--empty {
+  border: none;
+  /* border-style: dashed;
+  border-color: var(--c-border); */
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: none;
 }
 
 .ship-card:hover {
@@ -417,6 +426,10 @@ main {
 }
 
 .ship-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
   font-size: 1.3rem;
   color: var(--c-dim);
 }

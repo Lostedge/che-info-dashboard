@@ -70,7 +70,7 @@ const Header = {
       })
       .slice(-4);   // 取最后4 = 最早的4艘
 
-    this.el.ships.innerHTML = top4.map(s => {
+    const cards = top4.map(s => {
       const st = s._st;
       const { name, voyage } = this._splitLabel(s.ship_label || s.id || '--');
       return `<div class="ship-card state-${st.css}" title="${s.ship_label || s.id}">
@@ -81,6 +81,11 @@ const Header = {
         <span class="sc-time">${st.label} ${st.time}</span>
       </div>`;
     }).join('');
+
+    const empty = Array(Math.max(0, 4 - top4.length))
+      .fill('<div class="ship-card ship-card--empty"></div>').join('');
+
+    this.el.ships.innerHTML = cards + empty;
   },
 
   /** 拆分 ship_label: "船名 进口/出口" → { name, voyage } */
