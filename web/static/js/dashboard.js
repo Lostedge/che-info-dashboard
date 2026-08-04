@@ -38,13 +38,12 @@ const State = {
 
 
 /* ============================================================
-   Header
+   Header - 日期/时间/连接状态
    ============================================================ */
 
 const Header = {
   init() {
     this.el = {
-      ships:  document.getElementById('ship-info'),
       date:   document.getElementById('date-text'),
       time:   document.getElementById('time-text'),
       conn:   document.getElementById('conn-status'),
@@ -53,22 +52,45 @@ const Header = {
     setInterval(() => this._tick(), 1000);
   },
 
-  renderShips(list) {
+  /** 连接状态 */
+  setConnected(on) {
+    this.el.conn.textContent = on ? '已连接' : '未连接';
+    this.el.conn.classList.toggle('connected', on);
+  },
+
+  _tick() {
+    const now = new Date();
+    this.el.date.textContent = now.toLocaleDateString('zh-CN', {
+      year: 'numeric', month: '2-digit', day: '2-digit'
+    });
+    this.el.time.textContent = now.toLocaleTimeString('zh-CN', { hour12: false });
+  },
+};
+
+
+/* ============================================================
+   Ships
+   ============================================================ */
+
+const Ships = {
+  MAX_SHIPS: 4,
+
+  init() {
+    this.el = document.getElementById('ship-info');
+  },
+
+  render(list) {
     const ships = list || State.ships;
     if (!ships.length) {
-      this.el.ships.innerHTML = '<span class="ship-placeholder">暂无在港船舶</span>';
+      this.el.innerHTML = '<span class="ship-placeholder">暂无在港船舶</span>';
       return;
     }
 
-    // 时间降序 → 取最后4条（最早到达的4艘），最晚的在前
+    // 取"最早到达的 MAX_SHIPS 艘"（按 开工/靠泊/抵港 时间降序，取末尾）
     const top4 = [...ships]
       .map(s => ({ ...s, _st: this._shipState(s) }))
-      .sort((a, b) => {
-        const ta = a.beg_work_tim || a.rtb || a.eta || '';
-        const tb = b.beg_work_tim || b.rtb || b.eta || '';
-        return String(tb).localeCompare(String(ta));  // 降序：晚→早
-      })
-      .slice(-4);   // 取最后4 = 最早的4艘
+      .sort((a, b) => this._timeKey(b).localeCompare(this._timeKey(a)))
+      .slice(-this.MAX_SHIPS);
 
     const cards = top4.map(s => {
       const st = s._st;
@@ -82,10 +104,15 @@ const Header = {
       </div>`;
     }).join('');
 
-    const empty = Array(Math.max(0, 4 - top4.length))
+    const empty = Array(Math.max(0, this.MAX_SHIPS - top4.length))
       .fill('<div class="ship-card ship-card--empty"></div>').join('');
 
-    this.el.ships.innerHTML = cards + empty;
+    this.el.innerHTML = cards + empty;
+  },
+
+  /** 排序时间键：开工 > 靠泊 > 预计抵港 */
+  _timeKey(s) {
+    return String(s.beg_work_tim || s.rtb || s.eta || '');
   },
 
   /** 拆分 ship_label: "船名 进口/出口" → { name, voyage } */
@@ -98,7 +125,7 @@ const Header = {
     };
   },
 
-  /** 判定船舶三态 */
+  /** 判定船舶状态 */
   _shipState(s) {
     if (s.beg_work_tim) {
       return { css: 'work', label: '开工时间：', time: this._fmt(s.beg_work_tim) };
@@ -106,37 +133,13 @@ const Header = {
     if (s.rtb) {
       return { css: 'berth', label: '靠泊时间：', time: this._fmt(s.rtb) };
     }
-    return { css: 'wait', label: '预计抵港：', time: this._fmt(s.eta) || '--' };
+    return { css: 'wait', label: '预计抵港：', time: this._fmt(s.eta) };
   },
 
   _fmt(raw) {
-    if (!raw) return '--';
-    const d = new Date(raw);
-    if (isNaN(d.getTime())) {
-      // 回退：尝试正则提取
-      const m = String(raw).match(/(\d{2}):(\d{2})/);
-      return m ? `-- ${m[1]}:${m[2]}` : '--';
-    }
-    const mmdd = `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-    return `${mmdd} ${time}`;
-  },
-
-  /** 连接状态 */
-  setConnected(on) {
-    this.el.conn.textContent = on ? '已连接' : '未连接';
-    this.el.conn.classList.toggle('connected', on);
-  },
-
-  /* -------- 内部 -------- */
-
-  _tick() {
-    const now = new Date();
-    this.el.date.textContent = now.toLocaleDateString('zh-CN', {
-      year: 'numeric', month: '2-digit', day: '2-digit'
-    });
-    this.el.time.textContent = now.toLocaleTimeString('zh-CN', { hour12: false });
-  },
+    const m = String(raw || '').match(/(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+    return m ? `${m[2]}-${m[3]} ${m[4]}:${m[5]}` : '--';
+  }
 };
 
 
@@ -165,8 +168,6 @@ const Cards = {
     }
     listEl.innerHTML = devices.map(d => this._card(type, d)).join('');
   },
-
-  /* -------- 内部 -------- */
 
   _card(type, d) {
     const alive  = d.status !== '0';
@@ -248,7 +249,7 @@ const SSEClient = {
 
       case 'ship_info':
         State.ships = data;
-        Header.renderShips(data);
+        Ships.render(data);
         break;
 
       case 'ym_stats':
@@ -276,6 +277,7 @@ const SSEClient = {
 
 document.addEventListener('DOMContentLoaded', () => {
   Header.init();
+  Ships.init();
   Charts.init();
   SSEClient.init();
 });
