@@ -352,10 +352,12 @@ main {
   height: 8rem;
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: stretch;
   gap: 1rem;
-  padding: 0 1rem;
+  padding: 1rem;
   overflow: hidden;
+  background: var(--c-surface2);
+  border: 1px solid var(--c-muted);
 }
 
 /* 单艘船舶卡片 */
@@ -364,50 +366,54 @@ main {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  gap: 0.4rem;
   padding: 0.5rem 1.4rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--c-border);
   min-width: 17rem;
   max-width: 20rem;
-  cursor: default;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--c-border);
   background: var(--c-surface2);
+  box-shadow: 0 0 0.8rem rgba(0, 0, 0, 0.35);
+  transition: border-color 0.2s;
 }
 
 .ship-card:hover {
   border-color: var(--c-muted);
 }
 
-/* 船舶三种状态 */
-.ship-card.state-work  { border-color: var(--ship-work);  box-shadow: 0 0 8px rgba(35,134,54,0.15); }
-.ship-card.state-berth { border-color: var(--ship-berth); box-shadow: 0 0 8px rgba(158,106,3,0.15); }
-.ship-card.state-wait  { border-color: var(--ship-wait);  box-shadow: 0 0 8px rgba(31,111,235,0.15); }
-
-/* 船名 */
-.ship-card .sc-name {
-  font-size: 1.3rem;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* 航次 */
-.sc-voyage {
-  color: var(--c-dim);
-}
+/* 船舶状态 */
+.ship-card.state-work  { border-color: var(--ship-work); }
+.ship-card.state-berth { border-color: var(--ship-berth); }
+.ship-card.state-wait  { border-color: var(--ship-wait); }
 
 .ship-card.state-work  .sc-ship { color: var(--c-green); }
 .ship-card.state-berth .sc-ship { color: var(--c-amber); }
 .ship-card.state-wait  .sc-ship { color: var(--c-blue); }
 
+/* 船名 */
+.ship-card .sc-name,
 .ship-card .sc-time {
-  font-size: 1.15rem;
-  font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.ship-card .sc-name {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.ship-card .sc-voyage {
+  font-size: 1.3rem;
+  color: var(--c-dim);
+  margin-left: 0.5rem;
+}
+
+.ship-card .sc-time {
+  font-size: 1.15rem;
+  font-weight: 500;
   color: var(--c-text);
+  margin-left: 0.1rem;
 }
 
 .ship-placeholder {
