@@ -3,6 +3,61 @@
  * 依赖: Chart 全局 (chart.umd.min.js)
  */
 
+/** 数据标签 */
+const Labels = {
+  id: 'labels',
+  afterDatasetsDraw(chart) {
+    const { ctx, data } = chart;
+    const top = chart.getDatasetMeta(1);
+    if (!top.visible || !top.data.length) return;
+
+    const c20 = data.datasets[0].backgroundColor;
+    const c40 = data.datasets[1].backgroundColor;
+
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.font = "bold 13px 'Segoe UI'";
+    const lineH = 24;
+
+    top.data.forEach((el, i) => {
+      const v20 = data.datasets[0].data[i] ?? 0;
+      const v40 = data.datasets[1].data[i] ?? 0;
+      if (!v20 && !v40) return;
+
+      const x = el.x;
+      let y = el.y - 6;
+      if (v20 > 0) { this._chip(ctx, String(v20), c20, x, y); y -= lineH; }
+      if (v40 > 0) { this._chip(ctx, String(v40), c40, x, y); y -= lineH; }
+    });
+
+    ctx.restore();
+  },
+
+  _chip(ctx, text, color, x, y) {
+    const padX = 5, padY = 3, r = 4;
+    const fontSize = 13;
+    const w = ctx.measureText(text).width + padX * 2;
+    const h = fontSize + padY * 2;
+    const cx = x - w / 2;
+    const cy = y - h + 2;
+
+    ctx.beginPath();
+    ctx.moveTo(cx + r, cy);
+    ctx.arcTo(cx + w, cy, cx + w, cy + h, r);
+    ctx.arcTo(cx + w, cy + h, cx, cy + h, r);
+    ctx.arcTo(cx, cy + h, cx, cy, r);
+    ctx.arcTo(cx, cy, cx + w, cy, r);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(13, 17, 23, 0.75)';
+    ctx.fill();
+
+    ctx.fillStyle = color;
+    ctx.fillText(text, x, y);
+  },
+};
+
+
 const Charts = {
   instances: {},
 
@@ -17,7 +72,7 @@ const Charts = {
       dim:   s.getPropertyValue('--c-dim').trim() || '#8b949e',
       grid:  s.getPropertyValue('--c-border').trim() || '#30363d',
     };
-  },  
+  },
 
   init() {
     const c = this.getColors();
@@ -43,16 +98,16 @@ const Charts = {
       scales: {
         x: {
           stacked: true,
-          ticks: { 
-            color: c.text, 
+          ticks: {
+            color: c.text,
             font: { family: "'Segoe UI'", size: 16, weight: 'bold' },
           },
           grid: { display: false },
         },
         y: {
           stacked: true,
-          ticks: { 
-            color: c.soft, 
+          ticks: {
+            color: c.soft,
             font: { family: "'Segoe UI'", size: 13, weight: 'bold' },
           },
           grid: { color: c.grid },
@@ -76,6 +131,7 @@ const Charts = {
           ],
         },
         options: baseOpts,
+        plugins: [Labels],
       });
     });
   },
