@@ -37,6 +37,8 @@
   /* 图表色 */
   --chart-20:   #60a5fa;
   --chart-40:   #34d399;
+  --chart-20-text: #93c5fd;
+  --chart-40-text: #6ee7b7;
 
   /* ---- 尺寸 ---- */
   --header-h:  7rem;
@@ -487,8 +489,8 @@ main {
   font-variant-numeric: tabular-nums;
 }
 
-.cs-20 .cs-val { color: var(--chart-20); }
-.cs-40 .cs-val { color: var(--chart-40); }
+.cs-20 .cs-val { color: var(--chart-20-text); }
+.cs-40 .cs-val { color: var(--chart-40-text); }
 .cs-nat .cs-val { color: var(--c-soft); }
 .cs-teu .cs-val { color: var(--c-soft); }
 

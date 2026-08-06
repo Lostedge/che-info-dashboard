@@ -11,8 +11,8 @@ const Labels = {
     const top = chart.getDatasetMeta(1);
     if (!top.visible || !top.data.length) return;
 
-    const c20 = data.datasets[0].backgroundColor;
-    const c40 = data.datasets[1].backgroundColor;
+    const c20 = data.datasets[0].labelColor || data.datasets[0].backgroundColor;
+    const c40 = data.datasets[1].labelColor || data.datasets[1].backgroundColor;
 
     ctx.save();
     ctx.textAlign = 'center';
@@ -65,12 +65,14 @@ const Charts = {
   getColors() {
     const s = getComputedStyle(document.documentElement);
     return {
-      bar20: s.getPropertyValue('--chart-20').trim() || '#60a5fa',
-      bar40: s.getPropertyValue('--chart-40').trim() || '#34d399',
-      text:  s.getPropertyValue('--c-text').trim() || '#e6edf3',
-      soft:  s.getPropertyValue('--c-soft').trim() || '#b0b8c0',
-      dim:   s.getPropertyValue('--c-dim').trim() || '#8b949e',
-      grid:  s.getPropertyValue('--c-border').trim() || '#30363d',
+      bar20:    s.getPropertyValue('--chart-20').trim() || '#60a5fa',
+      bar40:    s.getPropertyValue('--chart-40').trim() || '#34d399',
+      bar20Txt: s.getPropertyValue('--chart-20-text').trim() || '#93c5fd',
+      bar40Txt: s.getPropertyValue('--chart-40-text').trim() || '#6ee7b7',
+      text:     s.getPropertyValue('--c-text').trim() || '#e6edf3',
+      soft:     s.getPropertyValue('--c-soft').trim() || '#b0b8c0',
+      dim:      s.getPropertyValue('--c-dim').trim() || '#8b949e',
+      grid:     s.getPropertyValue('--c-border').trim() || '#30363d',
     };
   },
 
@@ -124,9 +126,9 @@ const Charts = {
         data: {
           labels: [],
           datasets: [
-            { label: '20尺', data: [], backgroundColor: c.bar20,
+            { label: '20尺', data: [], backgroundColor: c.bar20, labelColor: c.bar20Txt,
               borderRadius: 4, maxBarThickness: 32 },
-            { label: '40尺', data: [], backgroundColor: c.bar40,
+            { label: '40尺', data: [], backgroundColor: c.bar40, labelColor: c.bar40Txt,
               borderRadius: 4, maxBarThickness: 32 },
           ],
         },
