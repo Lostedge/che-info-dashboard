@@ -30,8 +30,12 @@ const Labels = {
 
       const total = (chart.getDatasetMeta(0).visible ? v20 : 0)
                   + (chart.getDatasetMeta(1).visible ? v40 : 0);
+
+      const targetY = yScale.getPixelForValue(total);
+      if (Math.abs(el.y - targetY) > 0.5) return;
+
       const x = el.x;
-      let y = yScale.getPixelForValue(total) - 6;
+      let y = targetY - 6;
       if (v20 > 0) { this._chip(ctx, String(v20), c20, x, y); y -= lineH; }
       if (v40 > 0) { this._chip(ctx, String(v40), c40, x, y); y -= lineH; }
     });
