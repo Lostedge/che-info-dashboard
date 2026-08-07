@@ -8,11 +8,14 @@ const Labels = {
   id: 'labels',
   afterDatasetsDraw(chart) {
     const { ctx, data } = chart;
-    const top = chart.getDatasetMeta(1);
-    if (!top.visible || !top.data.length) return;
+    const yScale = chart.scales.y;
+    if (!yScale) return;
 
     const c20 = data.datasets[0].labelColor || data.datasets[0].backgroundColor;
     const c40 = data.datasets[1].labelColor || data.datasets[1].backgroundColor;
+    const meta = chart.getDatasetMeta(1).visible
+      ? chart.getDatasetMeta(1)
+      : chart.getDatasetMeta(0);
 
     ctx.save();
     ctx.textAlign = 'center';
@@ -20,13 +23,15 @@ const Labels = {
     ctx.font = "bold 13px 'Segoe UI'";
     const lineH = 24;
 
-    top.data.forEach((el, i) => {
+    meta.data.forEach((el, i) => {
       const v20 = data.datasets[0].data[i] ?? 0;
       const v40 = data.datasets[1].data[i] ?? 0;
       if (!v20 && !v40) return;
 
+      const total = (chart.getDatasetMeta(0).visible ? v20 : 0)
+                  + (chart.getDatasetMeta(1).visible ? v40 : 0);
       const x = el.x;
-      let y = el.y - 6;
+      let y = yScale.getPixelForValue(total) - 6;
       if (v20 > 0) { this._chip(ctx, String(v20), c20, x, y); y -= lineH; }
       if (v40 > 0) { this._chip(ctx, String(v40), c40, x, y); y -= lineH; }
     });
