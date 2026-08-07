@@ -498,6 +498,16 @@ main {
   flex: 1;
   padding: 0.2rem 3rem 3rem 3rem;
   min-height: 0;
+  position: relative;
+}
+
+/* ECharts 容器（替代原 canvas）：绝对定位填满 content 区域 */
+.chart-host {
+  position: absolute;
+  top: 0.2rem;
+  right: 3rem;
+  bottom: 3rem;
+  left: 3rem;
 }
 
 .chart-divider {
@@ -523,11 +533,6 @@ main {
   width: 1px;
   background: var(--c-muted);
   margin: var(--panel-pad) 0;
-}
-
-.chart-area canvas {
-  width: 100% !important;
-  height: 100% !important;
 }
 
 /* ============================================================

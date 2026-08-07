@@ -45,7 +45,7 @@
             <span class="chart-summary" id="summary-rtg"></span>
           </div>
           <div class="chart-body">        
-            <canvas id="chart-rtg"></canvas>
+            <div id="chart-rtg" class="chart-host"></div>
           </div>
         </div>
         <div class="chart-divider"></div>
@@ -56,7 +56,7 @@
               <span class="chart-summary" id="summary-qc"></span>
             </div>
             <div class="chart-body">        
-              <canvas id="chart-qc"></canvas>
+              <div id="chart-qc" class="chart-host"></div>
             </div>
           </div>
           <div class="chart-v-divider"></div>
@@ -66,7 +66,7 @@
               <span class="chart-summary" id="summary-fl"></span>
             </div>
             <div class="chart-body">        
-              <canvas id="chart-fl"></canvas>
+              <div id="chart-fl" class="chart-host"></div>
             </div>
           </div>
         </div>
@@ -97,8 +97,9 @@
   </main>
 
   <!-- ========== SCRIPTS ========== -->
-  <script src="libs/chart.umd.min.js"></script>
-  <script src="js/charts.js"></script>
+  <!-- ECharts 版（对比用）；切回 Chart.js 版：换成 chart.umd.min.js + js/charts.js -->
+  <script src="libs/echarts.min.js"></script>
+  <script src="js/charts_echarts.js"></script>
   <script src="js/dashboard.js"></script>
 </body>
 </html>
