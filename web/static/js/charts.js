@@ -3,69 +3,6 @@
  * 依赖: Chart 全局 (chart.umd.min.js)
  */
 
-/** 数据标签 */
-const Labels = {
-  id: 'labels',
-  afterDatasetsDraw(chart) {
-    const { ctx, data } = chart;
-    const yScale = chart.scales.y;
-    if (!yScale) return;
-
-    const c20 = data.datasets[0].labelColor || data.datasets[0].backgroundColor;
-    const c40 = data.datasets[1].labelColor || data.datasets[1].backgroundColor;
-    const meta = chart.getDatasetMeta(1).visible
-      ? chart.getDatasetMeta(1)
-      : chart.getDatasetMeta(0);
-
-    ctx.save();
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-    ctx.font = "bold 13px 'Segoe UI'";
-    const lineH = 24;
-
-    meta.data.forEach((el, i) => {
-      const v20 = data.datasets[0].data[i] ?? 0;
-      const v40 = data.datasets[1].data[i] ?? 0;
-      if (!v20 && !v40) return;
-
-      const total = (chart.getDatasetMeta(0).visible ? v20 : 0)
-                  + (chart.getDatasetMeta(1).visible ? v40 : 0);
-
-      const targetY = yScale.getPixelForValue(total);
-      if (Math.abs(el.y - targetY) > 0.5) return;
-
-      const x = el.x;
-      let y = targetY - 6;
-      if (v20 > 0) { this._chip(ctx, String(v20), c20, x, y); y -= lineH; }
-      if (v40 > 0) { this._chip(ctx, String(v40), c40, x, y); y -= lineH; }
-    });
-
-    ctx.restore();
-  },
-
-  _chip(ctx, text, color, x, y) {
-    const padX = 5, padY = 3, r = 4;
-    const fontSize = 13;
-    const w = ctx.measureText(text).width + padX * 2;
-    const h = fontSize + padY * 2;
-    const cx = x - w / 2;
-    const cy = y - h + 2;
-
-    ctx.beginPath();
-    ctx.moveTo(cx + r, cy);
-    ctx.arcTo(cx + w, cy, cx + w, cy + h, r);
-    ctx.arcTo(cx + w, cy + h, cx, cy + h, r);
-    ctx.arcTo(cx, cy + h, cx, cy, r);
-    ctx.arcTo(cx, cy, cx + w, cy, r);
-    ctx.closePath();
-    ctx.fillStyle = 'rgba(13, 17, 23, 0.75)';
-    ctx.fill();
-
-    ctx.fillStyle = color;
-    ctx.fillText(text, x, y);
-  },
-};
-
 
 const Charts = {
   instances: {},
@@ -86,6 +23,7 @@ const Charts = {
   },
 
   init() {
+    Chart.register(ChartDataLabels);
     const c = this.getColors();
 
     const baseOpts = {
@@ -127,22 +65,59 @@ const Charts = {
       },
     };
 
+    /** 数据标签 */
+    const chip = {
+      font: { family: "'Segoe UI'", size: 13, weight: 'bold' },
+      backgroundColor: 'rgba(13, 17, 23, 0.75)',
+      borderRadius: 4,
+      padding: { top: 3, right: 5, bottom: 3, left: 5 },
+    };
+    const base = { anchor: 'end', align: 'top', offset: 6, ...chip };
+    const onlyPos = v => ((v ?? 0) > 0 ? v : null);
+
+    /** 数据集配置 */
+    const makeDatasets = () => [
+      { label: '20尺', data: [], backgroundColor: c.bar20,
+        borderRadius: 4, maxBarThickness: 32,
+        datalabels: {
+          ...base,
+          color: c.bar20Txt,
+          display: (ctx) => ctx.chart.getDatasetMeta(1).hidden,
+          formatter: onlyPos,
+        },
+      },
+      { label: '40尺', data: [], backgroundColor: c.bar40,
+        borderRadius: 4, maxBarThickness: 32,
+        datalabels: {
+          ...base,
+          labels: {
+            v20: {
+              ...chip,
+              color: c.bar20Txt,
+              formatter: (v, ctx) => {
+                if (ctx.chart.getDatasetMeta(0).hidden) return null;
+                const v20 = ctx.chart.data.datasets[0].data[ctx.dataIndex] ?? 0;
+                return v20 > 0 ? v20 : null;
+              },
+            },
+            v40: {
+              ...chip,
+              color: c.bar40Txt,
+              offset: (ctx) => ctx.chart.getDatasetMeta(0).hidden ? 6 : 30,
+              formatter: onlyPos,
+            },
+          },
+        },
+      },
+    ];
+
     ['chart-rtg', 'chart-qc', 'chart-fl'].forEach(id => {
       const ctx = document.getElementById(id)?.getContext('2d');
       if (!ctx) return;
       this.instances[id] = new Chart(ctx, {
         type: 'bar',
-        data: {
-          labels: [],
-          datasets: [
-            { label: '20尺', data: [], backgroundColor: c.bar20, labelColor: c.bar20Txt,
-              borderRadius: 4, maxBarThickness: 32 },
-            { label: '40尺', data: [], backgroundColor: c.bar40, labelColor: c.bar40Txt,
-              borderRadius: 4, maxBarThickness: 32 },
-          ],
-        },
+        data: { labels: [], datasets: makeDatasets() },
         options: baseOpts,
-        plugins: [Labels],
       });
     });
   },
