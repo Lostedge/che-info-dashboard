@@ -89,3 +89,11 @@ class QueryExecutor:
     def get_ship_info(self) -> Optional[list[dict]]:
         """获取船舶信息"""
         return self.execute(queries.SHIP_INFO, {})
+
+    def get_ship_progress(self, voyage_nos: list) -> Optional[list[dict]]:
+        """获取船舶作业进度"""
+        if not voyage_nos:
+            return []
+        voyages = ', '.join(f':v{i}' for i in range(len(voyage_nos)))
+        params = {f'v{i}': v for i, v in enumerate(voyage_nos)}
+        return self.execute(queries.SHIP_PROGRESS.format(voyages=voyages), params)

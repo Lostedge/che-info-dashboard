@@ -81,3 +81,23 @@ SHIP_INFO = """
     FROM JZCT_TOS_HIS.SHIP_VOYAGE p
     WHERE p.SHIP_STAT_ID IN ('Y', 'C', 'D', 'E')
 """
+
+# 船舶作业进度
+SHIP_PROGRESS = """
+    SELECT
+        s.VOYAGE_NO                                                         AS id,
+        COUNT(CASE WHEN s.I_E_ID = 'I' THEN 1 END)                          AS i_plan_num,
+        COUNT(CASE WHEN s.I_E_ID = 'I'
+                   AND v.WORK_TIM IS NOT NULL THEN 1 END)                   AS i_done_num,
+        COUNT(CASE WHEN s.I_E_ID = 'I'
+                   AND v.COMM_STATUS IS NOT NULL THEN 1 END)                AS i_queue_num,
+        COUNT(CASE WHEN s.I_E_ID = 'E' THEN 1 END)                          AS e_plan_num,
+        COUNT(CASE WHEN s.I_E_ID = 'E'
+                   AND v.WORK_TIM IS NOT NULL THEN 1 END)                   AS e_done_num,
+        COUNT(CASE WHEN s.I_E_ID = 'E'
+                   AND v.COMM_STATUS IS NOT NULL THEN 1 END)                AS e_queue_num
+    FROM JZCT_TOS_HIS.SHIP s
+    LEFT JOIN JZCT_TOS.V_SAS_SHIP_MONITOR_QRY v ON s.SHIP_NO = v.SHIP_NO
+    WHERE s.VOYAGE_NO IN ({voyages})
+    GROUP BY s.VOYAGE_NO
+"""

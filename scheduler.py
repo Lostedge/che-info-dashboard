@@ -56,6 +56,7 @@ class Scheduler:
         executor = QueryExecutor()
 
         device_counts = []
+        working_voyages = []
         for label, fetcher, push_type in [
             ('YM', executor.get_ym_info, 'ym_info'),
             ('QC', executor.get_qc_info, 'qc_info'),
@@ -67,10 +68,27 @@ class Scheduler:
                     self.sse_server.push({'type': push_type, 'data': data})
                     self._cache[push_type] = data
                     device_counts.append(f"{label}: {len(data)}")
+                    if push_type == 'ship_info':
+                        working_voyages = [
+                            s['id'] for s in data if s.get('beg_work_tim') is not None
+                        ]
                 else:
                     self.logger.error(f"{label} 信息获取失败")
             except Exception as e:
                 self.logger.error(f"{label} 信息获取异常: {e}")
+
+        # 船舶作业进度
+        if working_voyages:
+            try:
+                progress = executor.get_ship_progress(working_voyages)
+                if progress is not None:
+                    self.sse_server.push({'type': 'ship_progress', 'data': progress})
+                    self._cache['ship_progress'] = progress
+                    device_counts.append(f"进度: {len(progress)}")
+                else:
+                    self.logger.error("船舶作业进度获取失败")
+            except Exception as e:
+                self.logger.error(f"船舶作业进度获取异常: {e}")
 
         summary = ', '.join(device_counts) if device_counts else '无数据'
         self.logger.info(f"设备信息获取完成: {summary}")
