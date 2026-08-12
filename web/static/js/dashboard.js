@@ -34,6 +34,15 @@ const State = {
   countOnline(list) {
     return list.filter(d => d.status === '1').length;
   },
+
+  /** 合并船舶作业进度 */
+  mergeShipProgress(list) {
+    const map = new Map((this.ships || []).map(s => [s.id, s]));
+    for (const p of list || []) {
+      const ship = map.get(p.id);
+      if (ship) Object.assign(ship, p);
+    }
+  },
 };
 
 
@@ -94,13 +103,29 @@ const Ships = {
 
     const cards = top4.map(s => {
       const st = s._st;
+      const p = this._progress(s);
       const { name, voyage } = this._splitLabel(s.ship_label || s.id || '--');
+
+      const progress = (p.iPlan > 0 || p.ePlan > 0)
+        ? `<div class="sc-progress">
+             <span class="scp-label">卸</span>
+             <span class="scp-num"><b>${p.iDone}</b>/${p.iPlan}</span>
+             <span class="scp-pct">${this._pct(p.iDone, p.iPlan)}</span>
+             <span class="scp-label">装</span>
+             <span class="scp-num"><b>${p.eDone}</b>/${p.ePlan}</span>
+             <span class="scp-pct">${this._pct(p.eDone, p.ePlan)}</span>
+           </div>`
+        : '';
+
       return `<div class="ship-card state-${st.css}" title="${s.ship_label || s.id}">
-        <span class="sc-name">
-          <span class="sc-ship">${name}</span>
-          <span class="sc-voyage">${voyage}</span>
-        </span>
-        <span class="sc-time">${st.label} ${st.time}</span>
+        <div class="sc-info">
+          <span class="sc-name">
+            <span class="sc-ship">${name}</span>
+            <span class="sc-voyage">${voyage}</span>
+          </span>
+          <span class="sc-time">${st.label} ${st.time}</span>
+        </div>
+        ${progress}
       </div>`;
     }).join('');
 
@@ -113,6 +138,22 @@ const Ships = {
   /** 排序时间键：开工 > 靠泊 > 预计抵港 */
   _timeKey(s) {
     return String(s.beg_work_tim || s.rtb || s.eta || '');
+  },
+
+  /** 作业进度 */
+  _progress(s) {
+    return {
+      iDone: s.i_done_num ?? 0,
+      iPlan: s.i_plan_num ?? 0,
+      eDone: s.e_done_num ?? 0,
+      ePlan: s.e_plan_num ?? 0,
+    };
+  },
+
+  /** 进度百分比 */
+  _pct(done, plan) {
+    if (!plan) return '--';
+    return `${Math.round((done / plan) * 100)}%`;
   },
 
   /** 拆分 ship_label: "船名 进口/出口" → { name, voyage } */
@@ -250,6 +291,11 @@ const SSEClient = {
       case 'ship_info':
         State.ships = data;
         Ships.render(data);
+        break;
+
+      case 'ship_progress':
+        State.mergeShipProgress(data);
+        Ships.render();
         break;
 
       case 'ym_stats':

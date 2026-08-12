@@ -368,8 +368,8 @@ main {
 .ship-card {
   flex: 1;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  flex-direction: row;
+  justify-content: flex-start;
   gap: 0.4rem;
   padding: 0.5rem 1.4rem;
   min-width: 18rem;
@@ -426,6 +426,34 @@ main {
   color: var(--c-text);
   margin-left: 0.1rem;
 }
+
+/* 左侧信息区 */
+.sc-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+  min-width: 14rem;
+}
+
+/* 右侧作业进度 */
+.sc-progress {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: auto auto 3rem;
+  column-gap: 0.6rem;
+  row-gap: 0.2rem;
+  align-items: baseline;
+  align-content: center;
+  justify-content: start;
+  font-size: 1.3rem;
+  color: var(--c-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.scp-label { color: var(--c-soft); white-space: nowrap; }
+.scp-num b { color: var(--c-text); font-weight: 700; }
+.scp-pct   { text-align: right; color: var(--c-soft); }
 
 .ship-placeholder {
   display: flex;
