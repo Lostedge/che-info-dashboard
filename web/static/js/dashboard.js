@@ -14,6 +14,7 @@
 const State = {
   devices: {},
   ships: [],
+  shipHistory: {},        // { [shipId]: [{ t, iPct, ePct }] }
 
   merge(list) {
     for (const d of list || []) {
@@ -41,6 +42,22 @@ const State = {
     for (const p of list || []) {
       const ship = map.get(p.id);
       if (ship) Object.assign(ship, p);
+    }
+  },
+
+  /** 记录船舶进度历史 */
+  pushShipHistory(list) {
+    const now = Date.now();
+    for (const p of list || []) {
+      if (p.id == null) continue;
+      const h = (this.shipHistory[p.id] ||= []);
+      const pct = (done, plan) => (plan ? Math.min(100, Math.round((done / plan) * 100)) : 0);
+      h.push({
+        t: now,
+        iPct: pct(p.i_done_num ?? 0, p.i_plan_num ?? 0),
+        ePct: pct(p.e_done_num ?? 0, p.e_plan_num ?? 0),
+      });
+      if (h.length > 30) h.shift();       // 保留最近 30 条
     }
   },
 };
@@ -127,6 +144,11 @@ const Ships = {
            </div>`
         : '';
 
+      const spark = this._sparkline(s);
+      const progressBlock = (progress || spark)
+        ? `<div class="sc-progress-wrap">${progress}${spark}</div>`
+        : '';
+
       return `<div class="ship-card state-${st.css}" title="${s.ship_label || s.id}">
         <div class="sc-info">
           <span class="sc-name">
@@ -135,7 +157,7 @@ const Ships = {
           </span>
           <span class="sc-time">${st.label} ${st.time}</span>
         </div>
-        ${progress}
+        ${progressBlock}
       </div>`;
     }).join('');
 
@@ -170,6 +192,21 @@ const Ships = {
   _pctNum(done, plan) {
     if (!plan) return 0;
     return Math.max(0, Math.min(100, Math.round((done / plan) * 100)));
+  },
+
+  /** 进度历史 SVG 折线图 */
+  _sparkline(s) {
+    const h = State.shipHistory[s.id];
+    if (!h || h.length < 2) return '';
+    const W = 96, H = 30, P = 2;
+    const iw = W - P * 2, ih = H - P * 2;
+    const x = i => P + (i / (h.length - 1)) * iw;
+    const y = v => P + ih - (v / 100) * ih;
+    const pts = k => h.map((p, i) => `${x(i).toFixed(1)},${y(p[k]).toFixed(1)}`).join(' ');
+    return `<svg class="sc-spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+      <polyline class="spk-i" vector-effect="non-scaling-stroke" points="${pts('iPct')}"></polyline>
+      <polyline class="spk-e" vector-effect="non-scaling-stroke" points="${pts('ePct')}"></polyline>
+    </svg>`;
   },
 
   /** 拆分 ship_label: "船名 进口/出口" → { name, voyage } */
@@ -311,6 +348,7 @@ const SSEClient = {
 
       case 'ship_progress':
         State.mergeShipProgress(data);
+        State.pushShipHistory(data);
         Ships.render();
         break;
 
