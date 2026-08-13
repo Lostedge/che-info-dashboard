@@ -108,12 +108,22 @@ const Ships = {
 
       const progress = (p.iPlan > 0 || p.ePlan > 0)
         ? `<div class="sc-progress">
-             <span class="scp-label">卸</span>
-             <span class="scp-num"><b>${p.iDone}</b>/${p.iPlan}</span>
-             <span class="scp-pct">${this._pct(p.iDone, p.iPlan)}</span>
-             <span class="scp-label">装</span>
-             <span class="scp-num"><b>${p.eDone}</b>/${p.ePlan}</span>
-             <span class="scp-pct">${this._pct(p.eDone, p.ePlan)}</span>
+             <div class="scp-row">
+               <div class="scp-line">
+                 <span class="scp-label">卸</span>
+                 <span class="scp-num"><b>${p.iDone}</b>/${p.iPlan}</span>
+                 <span class="scp-pct">${this._pct(p.iDone, p.iPlan)}</span>
+               </div>
+               <div class="bar"><div class="bar-fill bar-i" style="width:${this._pctNum(p.iDone, p.iPlan)}%"></div></div>
+             </div>
+             <div class="scp-row">
+               <div class="scp-line">
+                 <span class="scp-label">装</span>
+                 <span class="scp-num"><b>${p.eDone}</b>/${p.ePlan}</span>
+                 <span class="scp-pct">${this._pct(p.eDone, p.ePlan)}</span>
+               </div>
+               <div class="bar"><div class="bar-fill bar-e" style="width:${this._pctNum(p.eDone, p.ePlan)}%"></div></div>
+             </div>
            </div>`
         : '';
 
@@ -154,6 +164,12 @@ const Ships = {
   _pct(done, plan) {
     if (!plan) return '--';
     return `${Math.round((done / plan) * 100)}%`;
+  },
+
+  /** 进度条 */
+  _pctNum(done, plan) {
+    if (!plan) return 0;
+    return Math.max(0, Math.min(100, Math.round((done / plan) * 100)));
   },
 
   /** 拆分 ship_label: "船名 进口/出口" → { name, voyage } */
