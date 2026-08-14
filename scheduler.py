@@ -25,6 +25,11 @@ class Scheduler:
         self._scheduler = BackgroundScheduler()
         self._cache: dict[str, list] = {}
 
+        test_cfg = config.get('test', {})
+        self.test_datetime = None
+        if test_cfg.get('enabled') and test_cfg.get('test_datetime'):
+            self.test_datetime = datetime.strptime(test_cfg['test_datetime'], '%Y-%m-%d %H:%M:%S')
+
     def start(self):
         self._fetch_info()
         self._fetch_stats()
@@ -50,77 +55,54 @@ class Scheduler:
         time.sleep(self.delay * 60)
         self._fetch_stats()
 
-
     def _fetch_info(self):
         """获取并推送设备信息"""
+        self.logger.info("获取设备信息...")
         executor = QueryExecutor()
 
-        device_counts = []
-        working_voyages = []
         for label, fetcher, push_type in [
             ('YM', executor.get_ym_info, 'ym_info'),
             ('QC', executor.get_qc_info, 'qc_info'),
             ('SHIP', executor.get_ship_info, 'ship_info'),
         ]:
-            try:
-                data = fetcher()
-                if data is not None:
-                    self.sse_server.push({'type': push_type, 'data': data})
-                    self._cache[push_type] = data
-                    device_counts.append(f"{label}: {len(data)}")
-                    if push_type == 'ship_info':
-                        working_voyages = [
-                            s['id'] for s in data if s.get('beg_work_tim') is not None
-                        ]
-                else:
-                    self.logger.error(f"{label} 信息获取失败")
-            except Exception as e:
-                self.logger.error(f"{label} 信息获取异常: {e}")
+            self._fetch_and_push(label, fetcher, push_type)
 
         # 船舶作业进度
+        working_voyages = [
+            s['id'] for s in self._cache.get('ship_info', []) if s.get('beg_work_tim') is not None
+        ]
         if working_voyages:
-            try:
-                progress = executor.get_ship_progress(working_voyages)
-                if progress is not None:
-                    self.sse_server.push({'type': 'ship_progress', 'data': progress})
-                    self._cache['ship_progress'] = progress
-                    device_counts.append(f"进度: {len(progress)}")
-                else:
-                    self.logger.error("船舶作业进度获取失败")
-            except Exception as e:
-                self.logger.error(f"船舶作业进度获取异常: {e}")
-
-        summary = ', '.join(device_counts) if device_counts else '无数据'
-        self.logger.info(f"设备信息获取完成: {summary}")
+            self._fetch_and_push('PROG', executor.get_ship_progress, 'ship_progress', working_voyages)
 
     def _fetch_stats(self):
         """获取并推送作业统计"""
-        period_start, period_end = self._get_period_bounds(self.intervals['stats'])
+        now = self.test_datetime or datetime.now()
+        day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        period_start, period_end = self._get_period_bounds(self.intervals['stats'], now)
+        self.logger.info(f"获取作业统计... [{period_start:%H:%M} - {period_end:%H:%M}]")
         executor = QueryExecutor()
 
-        device_counts = []
         for label, fetcher, push_type in [
             ('YM', executor.get_ym_stats, 'ym_stats'),
             ('QC', executor.get_qc_stats, 'qc_stats'),
         ]:
-            try:
-                data = fetcher(period_start, period_end)
-                if data is not None:
-                    self.sse_server.push({'type': push_type, 'data': data})
-                    self._cache[push_type] = data
-                    device_counts.append(f"{label}: {len(data)}")
-                else:
-                    self.logger.error(f"{label} 统计失败")
-            except Exception as e:
-                self.logger.error(f"{label} 统计异常: {e}")
+            self._fetch_and_push(label, fetcher, push_type, day_start, period_start, period_end)
 
-        summary = ', '.join(device_counts) if device_counts else '无数据'
-        self.logger.info(f"作业统计: {period_start:%H:%M} - {period_end:%H:%M}, {summary}")
+    def _fetch_and_push(self, label, fetcher, push_type, *args):
+        """获取数据并推送、缓存，记录日志"""
+        try:
+            data = fetcher(*args)
+            if data is not None:
+                self.sse_server.push({'type': push_type, 'data': data})
+                self._cache[push_type] = data
+                self.logger.info(f"{label}: {len(data)}")
+            else:
+                self.logger.error(f"{label} 获取失败")
+        except Exception as e:
+            self.logger.error(f"{label} 获取异常: {e}")
 
-
-    def _get_period_bounds(self, interval_minutes: int) -> tuple:
+    def _get_period_bounds(self, interval_minutes: int, now: datetime) -> tuple:
         """返回对齐到 interval 边界的时间窗口"""
-        now = datetime.now()
         aligned = (now.minute // interval_minutes) * interval_minutes
         period_end = now.replace(minute=aligned, second=0, microsecond=0)
         period_start = period_end - timedelta(minutes=interval_minutes)

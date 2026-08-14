@@ -64,16 +64,18 @@ class QueryExecutor:
 
     # ========== 业务方法 ==========
 
-    def get_ym_stats(self, period_start, period_end) -> Optional[list[dict]]:
+    def get_ym_stats(self, day_start, period_start, period_end) -> Optional[list[dict]]:
         """获取堆场设备作业统计"""
         return self.execute(queries.YM_STATS, {
+            'day_start': day_start,
             'period_start': period_start,
             'period_end': period_end,
         })
     
-    def get_qc_stats(self, period_start, period_end) -> Optional[list[dict]]:
+    def get_qc_stats(self, day_start, period_start, period_end) -> Optional[list[dict]]:
         """获取岸桥作业统计"""
         return self.execute(queries.QC_STATS, {
+            'day_start': day_start,
             'period_start': period_start,
             'period_end': period_end,
         })
