@@ -25,6 +25,11 @@ class Scheduler:
         self._scheduler = BackgroundScheduler()
         self._cache: dict[str, list] = {}
 
+        test_cfg = config.get('test', {})
+        self.test_datetime = None
+        if test_cfg.get('enabled') and test_cfg.get('test_datetime'):
+            self.test_datetime = datetime.strptime(test_cfg['test_datetime'], '%Y-%m-%d %H:%M:%S')
+
     def start(self):
         self._fetch_info()
         self._fetch_stats()
@@ -49,7 +54,6 @@ class Scheduler:
         """延迟 self.delay 分钟获取作业统计"""
         time.sleep(self.delay * 60)
         self._fetch_stats()
-
 
     def _fetch_info(self):
         """获取并推送设备信息"""
@@ -77,7 +81,9 @@ class Scheduler:
 
     def _fetch_stats(self):
         """获取并推送作业统计"""
-        period_start, period_end = self._get_period_bounds(self.intervals['stats'])
+        now = self.test_datetime or datetime.now()
+        day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        period_start, period_end = self._get_period_bounds(self.intervals['stats'], now)
         executor = QueryExecutor()
 
         device_counts = []
@@ -86,7 +92,7 @@ class Scheduler:
             ('QC', executor.get_qc_stats, 'qc_stats'),
         ]:
             try:
-                data = fetcher(period_start, period_end)
+                data = fetcher(day_start, period_start, period_end)
                 if data is not None:
                     self.sse_server.push({'type': push_type, 'data': data})
                     self._cache[push_type] = data
@@ -100,9 +106,8 @@ class Scheduler:
         self.logger.info(f"作业统计: {period_start:%H:%M} - {period_end:%H:%M}, {summary}")
 
 
-    def _get_period_bounds(self, interval_minutes: int) -> tuple:
+    def _get_period_bounds(self, interval_minutes: int, now: datetime) -> tuple:
         """返回对齐到 interval 边界的时间窗口"""
-        now = datetime.now()
         aligned = (now.minute // interval_minutes) * interval_minutes
         period_end = now.replace(minute=aligned, second=0, microsecond=0)
         period_start = period_end - timedelta(minutes=interval_minutes)

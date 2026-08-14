@@ -14,7 +14,7 @@ YM_STATS = """
                    AND WORK_TIM >= :period_start THEN 1 END)           AS period_40
     FROM JZCT_TOS_HIS.CY_COMMAND
     WHERE WORK_TIM IS NOT NULL
-      AND WORK_TIM >= TRUNC(SYSDATE)
+      AND WORK_TIM >= :day_start
       AND WORK_TIM <  :period_end
       AND CY_MACH_NO IS NOT NULL
       AND QUEUE_TYP IN ('SI','SO','TI','TO')
@@ -34,7 +34,7 @@ QC_STATS = """
                    AND WORK_TIM >= :period_start THEN 1 END)           AS period_40
     FROM JZCT_TOS_HIS.SHIP_COMMAND
     WHERE WORK_TIM IS NOT NULL
-      AND WORK_TIM >= TRUNC(SYSDATE)
+      AND WORK_TIM >= :day_start
       AND WORK_TIM <  :period_end
       AND SHIP_MACH_NO IS NOT NULL
     GROUP BY SHIP_MACH_NO
