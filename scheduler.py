@@ -57,54 +57,42 @@ class Scheduler:
 
     def _fetch_info(self):
         """获取并推送设备信息"""
+        self.logger.info("获取设备信息...")
         executor = QueryExecutor()
 
-        device_counts = []
         for label, fetcher, push_type in [
             ('YM', executor.get_ym_info, 'ym_info'),
             ('QC', executor.get_qc_info, 'qc_info'),
             ('SHIP', executor.get_ship_info, 'ship_info'),
         ]:
-            try:
-                data = fetcher()
-                if data is not None:
-                    self.sse_server.push({'type': push_type, 'data': data})
-                    self._cache[push_type] = data
-                    device_counts.append(f"{label}: {len(data)}")
-                else:
-                    self.logger.error(f"{label} 信息获取失败")
-            except Exception as e:
-                self.logger.error(f"{label} 信息获取异常: {e}")
-
-        summary = ', '.join(device_counts) if device_counts else '无数据'
-        self.logger.info(f"设备信息获取完成: {summary}")
+            self._fetch_and_push(label, fetcher, push_type)
 
     def _fetch_stats(self):
         """获取并推送作业统计"""
         now = self.test_datetime or datetime.now()
         day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         period_start, period_end = self._get_period_bounds(self.intervals['stats'], now)
+        self.logger.info(f"获取作业统计... [{period_start:%H:%M} - {period_end:%H:%M}]")
         executor = QueryExecutor()
 
-        device_counts = []
         for label, fetcher, push_type in [
             ('YM', executor.get_ym_stats, 'ym_stats'),
             ('QC', executor.get_qc_stats, 'qc_stats'),
         ]:
-            try:
-                data = fetcher(day_start, period_start, period_end)
-                if data is not None:
-                    self.sse_server.push({'type': push_type, 'data': data})
-                    self._cache[push_type] = data
-                    device_counts.append(f"{label}: {len(data)}")
-                else:
-                    self.logger.error(f"{label} 统计失败")
-            except Exception as e:
-                self.logger.error(f"{label} 统计异常: {e}")
+            self._fetch_and_push(label, fetcher, push_type, day_start, period_start, period_end)
 
-        summary = ', '.join(device_counts) if device_counts else '无数据'
-        self.logger.info(f"作业统计: {period_start:%H:%M} - {period_end:%H:%M}, {summary}")
-
+    def _fetch_and_push(self, label, fetcher, push_type, *args):
+        """获取数据并推送、缓存，记录日志"""
+        try:
+            data = fetcher(*args)
+            if data is not None:
+                self.sse_server.push({'type': push_type, 'data': data})
+                self._cache[push_type] = data
+                self.logger.info(f"{label}: {len(data)}")
+            else:
+                self.logger.error(f"{label} 获取失败")
+        except Exception as e:
+            self.logger.error(f"{label} 获取异常: {e}")
 
     def _get_period_bounds(self, interval_minutes: int, now: datetime) -> tuple:
         """返回对齐到 interval 边界的时间窗口"""
