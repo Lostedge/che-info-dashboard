@@ -370,7 +370,7 @@ const SSEClient = {
 
       case 'ship_progress':
         State.mergeShipProgress(data);
-        State.pushShipHistory(data);
+        if (!msg.init) State.pushShipHistory(data);
         Ships.render();
         break;
 

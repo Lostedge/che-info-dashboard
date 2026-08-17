@@ -84,7 +84,7 @@ def main():
         # 推送 DB 缓存数据
         for push_type, data in scheduler.get_cached_data().items():
             if data:
-                sse_server.push({'type': push_type, 'data': data})
+                sse_server.push({'type': push_type, 'data': data, 'init': True})
 
     SSEHandler.on_client_connect = on_connect
     sse_server.start()
@@ -151,7 +151,7 @@ def main():
     except Exception as e:
         logger.warning(f"Oracle 连接失败，程序将继续运行但不查询数据库: {e}")
 
-    # 6. 定时调度器（暂为骨架）
+    # 6. 定时调度器
     scheduler = Scheduler(
         sse_server=sse_server, 
         config=config.get('scheduler', {})
