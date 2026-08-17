@@ -16,6 +16,27 @@ const State = {
   ships: [],
   shipHistory: {},        // { [shipId]: [{ t, iPct, ePct }] }
 
+  _initHistory() {
+    try { this.shipHistory = JSON.parse(localStorage.getItem('shipHistory')) || {}; }
+    catch { this.shipHistory = {}; }
+  },
+
+  _saveHistory() {
+    const cutoff = Date.now() - 24 * 3600 * 1000;
+    for (const [id, h] of Object.entries(this.shipHistory)) {
+      const last = h[h.length - 1];
+      if (!last || last.t < cutoff) { delete this.shipHistory[id]; continue; }
+      if (h.length > 30) h.splice(0, h.length - 30);
+    }
+    const ids = Object.keys(this.shipHistory)
+      .sort((a, b) => {
+        const ha = this.shipHistory[a], hb = this.shipHistory[b];
+        return ha[ha.length - 1].t - hb[hb.length - 1].t;
+      });
+    for (const id of ids.slice(0, Math.max(0, ids.length - 10))) delete this.shipHistory[id];
+    localStorage.setItem('shipHistory', JSON.stringify(this.shipHistory));
+  },
+
   merge(list) {
     for (const d of list || []) {
       if (!d.id) continue;
@@ -59,6 +80,7 @@ const State = {
       });
       if (h.length > 30) h.shift();       // 保留最近 30 条
     }
+    this._saveHistory();
   },
 };
 
@@ -379,5 +401,6 @@ document.addEventListener('DOMContentLoaded', () => {
   Header.init();
   Ships.init();
   Charts.init();
+  State._initHistory();
   SSEClient.init();
 });
