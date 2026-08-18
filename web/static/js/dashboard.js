@@ -16,25 +16,46 @@ const State = {
   ships: [],
   shipHistory: {},        // { [shipId]: [{ t, iPct, ePct }] }
 
+  // 船舶进度历史配置
+  CFG: {
+    maxPoints: 96,           // 每艘船保留点数上限
+    renderInterval: 2,       // 渲染采样间隔：每 N 个原始点取 1 个
+    renderPoints: 48,        // SVG 最多显示点数（最近 N 个采样点）
+    maxShips: 10,            // 保留的最大船舶数（按最近更新时间排序）
+    ttlHours: 24,            // 无更新时船舶保留时长（小时）
+  },
+
   _initHistory() {
     try { this.shipHistory = JSON.parse(localStorage.getItem('shipHistory')) || {}; }
     catch { this.shipHistory = {}; }
   },
 
   _saveHistory() {
-    const cutoff = Date.now() - 24 * 3600 * 1000;
+    const cutoff = Date.now() - this.CFG.ttlHours * 3600 * 1000;
     for (const [id, h] of Object.entries(this.shipHistory)) {
       const last = h[h.length - 1];
       if (!last || last.t < cutoff) { delete this.shipHistory[id]; continue; }
-      if (h.length > 30) h.splice(0, h.length - 30);
+      if (h.length > this.CFG.maxPoints) h.splice(0, h.length - this.CFG.maxPoints);
     }
     const ids = Object.keys(this.shipHistory)
       .sort((a, b) => {
         const ha = this.shipHistory[a], hb = this.shipHistory[b];
         return ha[ha.length - 1].t - hb[hb.length - 1].t;
       });
-    for (const id of ids.slice(0, Math.max(0, ids.length - 10))) delete this.shipHistory[id];
-    localStorage.setItem('shipHistory', JSON.stringify(this.shipHistory));
+    for (const id of ids.slice(0, Math.max(0, ids.length - this.CFG.maxShips))) delete this.shipHistory[id];
+    try {
+      localStorage.setItem('shipHistory', JSON.stringify(this.shipHistory));
+    } catch (e) {}
+  },
+
+  /** 取船舶进度历史的渲染采样：间隔取点 + 最多 renderPoints 个 */
+  renderHistory(id) {
+    const h = this.shipHistory[id];
+    if (!h || h.length < 2) return [];
+    const { renderInterval, renderPoints } = this.CFG;
+    const out = [];
+    for (let i = 0; i < h.length; i += renderInterval) out.push(h[i]);
+    return out.slice(-renderPoints);
   },
 
   merge(list) {
@@ -78,7 +99,6 @@ const State = {
         iPct: pct(p.i_done_num ?? 0, p.i_plan_num ?? 0),
         ePct: pct(p.e_done_num ?? 0, p.e_plan_num ?? 0),
       });
-      if (h.length > 30) h.shift();       // 保留最近 30 条
     }
     this._saveHistory();
   },
@@ -218,8 +238,8 @@ const Ships = {
 
   /** 进度历史 SVG 折线图 */
   _sparkline(s) {
-    const h = State.shipHistory[s.id];
-    if (!h || h.length < 2) return '';
+    const h = State.renderHistory(s.id);
+    if (h.length < 2) return '';
     const W = 96, H = 30, P = 2;
     const iw = W - P * 2, ih = H - P * 2;
     const x = i => P + (i / (h.length - 1)) * iw;
