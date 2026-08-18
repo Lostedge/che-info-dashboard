@@ -87,7 +87,6 @@ def main():
                 sse_server.push({'type': push_type, 'data': data})
 
     SSEHandler.on_client_connect = on_connect
-    sse_server.start()
 
     # 3. 消息处理器（MQTT 消息 → 检测变化 → SSE 推送）
     def handle_mqtt_message(raw_payload: bytes, topic: str = None):
@@ -151,14 +150,17 @@ def main():
     except Exception as e:
         logger.warning(f"Oracle 连接失败，程序将继续运行但不查询数据库: {e}")
 
-    # 6. 定时调度器（暂为骨架）
+    # 6. 定时调度器
     scheduler = Scheduler(
         sse_server=sse_server, 
         config=config.get('scheduler', {})
     )
     scheduler.start()
 
-    # 7. 启动
+    # 7. SSE 服务（在所有依赖就绪后启动，避免 on_connect 竞态）
+    sse_server.start()
+
+    # 8. 启动
     try:
         try:
             mqtt_client.connect()

@@ -79,10 +79,10 @@ class SSEHandler(BaseHTTPRequestHandler):
             client_ip = self.client_address[0]
             self.logger.info(f"SSE 客户端连接: {client_ip}，当前连接数: {len(self.clients)}")
 
-        if self.__class__.on_client_connect:
-            self.__class__.on_client_connect()
-
         try:
+            if self.__class__.on_client_connect:
+                self.__class__.on_client_connect()
+
             while True:
                 self.wfile.write(b': heartbeat\n\n')
                 self.wfile.flush()
