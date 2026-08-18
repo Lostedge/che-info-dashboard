@@ -7,6 +7,10 @@
  * SSE → _route() → State.merge() → render()
  */
 
+/** done/plan → 0-100 百分比 */
+const toPct = (done, plan) => (plan ? Math.min(100, Math.round((done / plan) * 100)) : 0);
+
+
 /* ============================================================
    State
    ============================================================ */
@@ -45,7 +49,7 @@ const State = {
     for (const id of ids.slice(0, Math.max(0, ids.length - this.CFG.maxShips))) delete this.shipHistory[id];
     try {
       localStorage.setItem('shipHistory', JSON.stringify(this.shipHistory));
-    } catch (e) {}
+    } catch (e) { /* localStorage 满/被禁用时不致命，忽略 */ }
   },
 
   /** 取船舶进度历史的渲染采样：间隔取点 + 最多 renderPoints 个 */
@@ -93,11 +97,10 @@ const State = {
     for (const p of list || []) {
       if (p.id == null) continue;
       const h = (this.shipHistory[p.id] ||= []);
-      const pct = (done, plan) => (plan ? Math.min(100, Math.round((done / plan) * 100)) : 0);
       h.push({
         t: now,
-        iPct: pct(p.i_done_num ?? 0, p.i_plan_num ?? 0),
-        ePct: pct(p.e_done_num ?? 0, p.e_plan_num ?? 0),
+        iPct: toPct(p.i_done_num ?? 0, p.i_plan_num ?? 0),
+        ePct: toPct(p.e_done_num ?? 0, p.e_plan_num ?? 0),
       });
     }
     this._saveHistory();
@@ -173,7 +176,7 @@ const Ships = {
                  <span class="scp-num"><b>${p.iDone}</b>/${p.iPlan}</span>
                  <span class="scp-pct">${this._pct(p.iDone, p.iPlan)}</span>
                </div>
-               <div class="bar"><div class="bar-fill bar-i" style="width:${this._pctNum(p.iDone, p.iPlan)}%"></div></div>
+               <div class="bar"><div class="bar-fill bar-i" style="width:${toPct(p.iDone, p.iPlan)}%"></div></div>
              </div>
              <div class="scp-row">
                <div class="scp-line">
@@ -181,7 +184,7 @@ const Ships = {
                  <span class="scp-num"><b>${p.eDone}</b>/${p.ePlan}</span>
                  <span class="scp-pct">${this._pct(p.eDone, p.ePlan)}</span>
                </div>
-               <div class="bar"><div class="bar-fill bar-e" style="width:${this._pctNum(p.eDone, p.ePlan)}%"></div></div>
+               <div class="bar"><div class="bar-fill bar-e" style="width:${toPct(p.eDone, p.ePlan)}%"></div></div>
              </div>
            </div>`
         : '';
@@ -224,16 +227,10 @@ const Ships = {
     };
   },
 
-  /** 进度百分比 */
+  /** 进度百分比字符串 */
   _pct(done, plan) {
     if (!plan) return '--';
-    return `${Math.round((done / plan) * 100)}%`;
-  },
-
-  /** 进度条 */
-  _pctNum(done, plan) {
-    if (!plan) return 0;
-    return Math.max(0, Math.min(100, Math.round((done / plan) * 100)));
+    return `${toPct(done, plan)}%`;
   },
 
   /** 进度历史 SVG 折线图 */
@@ -254,10 +251,10 @@ const Ships = {
   /** 拆分 ship_label: "船名 进口/出口" → { name, voyage } */
   _splitLabel(label) {
     const idx = label.lastIndexOf(' ');
-    if (idx === -1) return { name: label.substring(0, 22), voyage: '' };
+    if (idx === -1) return { name: label, voyage: '' };
     return {
-      name:   label.substring(0, idx).substring(0, 18),
-      voyage: label.substring(idx + 1).substring(0, 15),
+      name:   label.substring(0, idx),
+      voyage: label.substring(idx + 1),
     };
   },
 
