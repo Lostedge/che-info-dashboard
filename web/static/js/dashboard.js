@@ -7,6 +7,13 @@
  * SSE → _route() → State.merge() → render()
  */
 
+/** 转义 HTML 特殊字符 */
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  })[c]);
+}
+
 /* ============================================================
    State
    ============================================================ */
@@ -94,11 +101,12 @@ const Ships = {
 
     const cards = top4.map(s => {
       const st = s._st;
+      const esc = escapeHtml;
       const { name, voyage } = this._splitLabel(s.ship_label || s.id || '--');
-      return `<div class="ship-card state-${st.css}" title="${s.ship_label || s.id}">
+      return `<div class="ship-card state-${st.css}" title="${esc(s.ship_label || s.id)}">
         <span class="sc-name">
-          <span class="sc-ship">${name}</span>
-          <span class="sc-voyage">${voyage}</span>
+          <span class="sc-ship">${esc(name)}</span>
+          <span class="sc-voyage">${esc(voyage)}</span>
         </span>
         <span class="sc-time">${st.label} ${st.time}</span>
       </div>`;
@@ -170,18 +178,19 @@ const Cards = {
   },
 
   _card(type, d) {
+    const esc    = escapeHtml;
     const alive  = d.status !== '0';
     const loc    = this._loc(type, d);
     const driver = alive ? (d.driver || '') : '';
     const ship   = (alive && type === 'qc') ? (d.ship_name || '').slice(0, 10) : '';
     const locStr = (alive || type === 'rtg') ? loc : '';
 
-    return `<div class="card${alive ? '' : ' offline'}" title="${d.id}  ${d.driver || ''}  ${loc}">
+    return `<div class="card${alive ? '' : ' offline'}" title="${esc(d.id)}  ${esc(d.driver || '')}  ${esc(loc)}">
       <span class="c-bar ${this._bar(d)}"></span>
-      <span class="c-id">${d.id}</span>
-      <span class="c-driver">${driver}</span>
-      ${type === 'qc' ? `<span class="c-ship">${ship}</span>` : ''}
-      <span class="c-loc">${locStr}</span>
+      <span class="c-id">${esc(d.id)}</span>
+      <span class="c-driver">${esc(driver)}</span>
+      ${type === 'qc' ? `<span class="c-ship">${esc(ship)}</span>` : ''}
+      <span class="c-loc">${esc(locStr)}</span>
     </div>`;
   },
 
