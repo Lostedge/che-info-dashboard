@@ -66,6 +66,10 @@ class SSEHandler(BaseHTTPRequestHandler):
         except Exception:
             pass
 
+    def setup(self):
+        super().setup()
+        self.write_lock = threading.Lock()    # 该客户端独立写锁
+
     def _handle_sse(self):
         self.send_response(200)
         self.send_header('Content-Type', 'text/event-stream')
@@ -84,8 +88,9 @@ class SSEHandler(BaseHTTPRequestHandler):
                 self.__class__.on_client_connect()
 
             while True:
-                self.wfile.write(b': heartbeat\n\n')
-                self.wfile.flush()
+                with self.write_lock:
+                    self.wfile.write(b': heartbeat\n\n')
+                    self.wfile.flush()
                 time.sleep(15)
         except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
             pass
@@ -128,17 +133,22 @@ class SSEHandler(BaseHTTPRequestHandler):
         with cls.lock:
             if not cls.clients:
                 return
-            json_data = json.dumps(data, ensure_ascii=False, default=_json_serial)
-            message = f"data: {json_data}\n\n".encode('utf-8')
-            dead_clients = []
-            for client in cls.clients:
-                try:
+            clients = list(cls.clients)
+        json_data = json.dumps(data, ensure_ascii=False, default=_json_serial)
+        message = f"data: {json_data}\n\n".encode('utf-8')
+        dead_clients = []
+        for client in clients:
+            try:
+                with client.write_lock:
                     client.wfile.write(message)
                     client.wfile.flush()
-                except (BrokenPipeError, ConnectionResetError, OSError):
-                    dead_clients.append(client)
-            for client in dead_clients:
-                cls.clients.remove(client)
+            except (BrokenPipeError, ConnectionResetError, OSError):
+                dead_clients.append(client)
+        if dead_clients:
+            with cls.lock:
+                for c in dead_clients:
+                    if c in cls.clients:
+                        cls.clients.remove(c)
 
 
 class SSEServer:
