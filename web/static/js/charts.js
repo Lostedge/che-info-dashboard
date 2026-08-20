@@ -169,8 +169,8 @@ const Charts = {
       const el = document.getElementById(id);
       if (!el) continue;
 
-      const s20 = list.reduce((s, d) => s + (d.day_20 ?? 0), 0);
-      const s40 = list.reduce((s, d) => s + (d.day_40 ?? 0), 0);
+      const s20 = list.reduce((s, d) => s + (Number(d.day_20) || 0), 0);
+      const s40 = list.reduce((s, d) => s + (Number(d.day_40) || 0), 0);
       const nat = s20 + s40;
       const teu = s20 + s40 * 2;
 

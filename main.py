@@ -64,7 +64,8 @@ def main():
     sse_cfg = config.get('sse', {})
     sse_server = SSEServer(
         host=sse_cfg.get('host', '0.0.0.0'),
-        port=sse_cfg.get('port', 8765)
+        port=sse_cfg.get('port', 8765),
+        max_clients=sse_cfg.get('max_clients', 20),
     )
 
     # 设置客户端连接回调
@@ -87,7 +88,6 @@ def main():
                 sse_server.push({'type': push_type, 'data': data, 'init': True})
 
     SSEHandler.on_client_connect = on_connect
-    sse_server.start()
 
     # 3. 消息处理器（MQTT 消息 → 检测变化 → SSE 推送）
     def handle_mqtt_message(raw_payload: bytes, topic: str = None):
@@ -158,7 +158,10 @@ def main():
     )
     scheduler.start()
 
-    # 7. 启动
+    # 7. SSE 服务（在所有依赖就绪后启动，避免 on_connect 竞态）
+    sse_server.start()
+
+    # 8. 启动
     try:
         try:
             mqtt_client.connect()

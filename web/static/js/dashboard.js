@@ -7,6 +7,13 @@
  * SSE → _route() → State.merge() → render()
  */
 
+/** 转义 HTML 特殊字符 */
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  })[c]);
+}
+
 /** done/plan → 0-100 百分比 */
 const toPct = (done, plan) => (plan ? Math.min(100, Math.round((done / plan) * 100)) : 0);
 
@@ -164,6 +171,7 @@ const Ships = {
       .slice(-this.MAX_SHIPS);
 
     const cards = top4.map(s => {
+      const esc = escapeHtml;
       const st = s._st;
       const p = this._progress(s);
       const { name, voyage } = this._splitLabel(s.ship_label || s.id || '--');
@@ -176,7 +184,7 @@ const Ships = {
                  <span class="scp-num"><b>${p.iDone}</b>/${p.iPlan}</span>
                  <span class="scp-pct">${this._pct(p.iDone, p.iPlan)}</span>
                </div>
-               <div class="bar"><div class="bar-fill bar-i" style="width:${toPct(p.iDone, p.iPlan)}%"></div></div>
+               <div class="bar"><div class="bar-fill bar-i" data-pct="${toPct(p.iDone, p.iPlan)}"></div></div>
              </div>
              <div class="scp-row">
                <div class="scp-line">
@@ -184,7 +192,7 @@ const Ships = {
                  <span class="scp-num"><b>${p.eDone}</b>/${p.ePlan}</span>
                  <span class="scp-pct">${this._pct(p.eDone, p.ePlan)}</span>
                </div>
-               <div class="bar"><div class="bar-fill bar-e" style="width:${toPct(p.eDone, p.ePlan)}%"></div></div>
+               <div class="bar"><div class="bar-fill bar-e" data-pct="${toPct(p.eDone, p.ePlan)}"></div></div>
              </div>
            </div>`
         : '';
@@ -194,11 +202,11 @@ const Ships = {
         ? `<div class="sc-progress-wrap">${progress}${spark}</div>`
         : '';
 
-      return `<div class="ship-card state-${st.css}" title="${s.ship_label || s.id}">
+      return `<div class="ship-card state-${st.css}" title="${esc(s.ship_label || s.id)}">
         <div class="sc-info">
           <span class="sc-name">
-            <span class="sc-ship">${name}</span>
-            <span class="sc-voyage">${voyage}</span>
+            <span class="sc-ship">${esc(name)}</span>
+            <span class="sc-voyage">${esc(voyage)}</span>
           </span>
           <span class="sc-time">${st.label} ${st.time}</span>
         </div>
@@ -210,6 +218,10 @@ const Ships = {
       .fill('<div class="ship-card ship-card--empty"></div>').join('');
 
     this.el.innerHTML = cards + empty;
+
+    this.el.querySelectorAll('.bar-fill').forEach(el => {
+      el.style.width = `${el.dataset.pct}%`;
+    });
   },
 
   /** 排序时间键：开工 > 靠泊 > 预计抵港 */
@@ -220,10 +232,10 @@ const Ships = {
   /** 作业进度 */
   _progress(s) {
     return {
-      iDone: s.i_done_num ?? 0,
-      iPlan: s.i_plan_num ?? 0,
-      eDone: s.e_done_num ?? 0,
-      ePlan: s.e_plan_num ?? 0,
+      iDone: Number(s.i_done_num) || 0,
+      iPlan: Number(s.i_plan_num) || 0,
+      eDone: Number(s.e_done_num) || 0,
+      ePlan: Number(s.e_plan_num) || 0,
     };
   },
 
@@ -303,18 +315,19 @@ const Cards = {
   },
 
   _card(type, d) {
+    const esc    = escapeHtml;
     const alive  = d.status !== '0';
     const loc    = this._loc(type, d);
     const driver = alive ? (d.driver || '') : '';
     const ship   = (alive && type === 'qc') ? (d.ship_name || '').slice(0, 10) : '';
     const locStr = (alive || type === 'rtg') ? loc : '';
 
-    return `<div class="card${alive ? '' : ' offline'}" title="${d.id}  ${d.driver || ''}  ${loc}">
+    return `<div class="card${alive ? '' : ' offline'}" title="${esc(d.id)}  ${esc(d.driver || '')}  ${esc(loc)}">
       <span class="c-bar ${this._bar(d)}"></span>
-      <span class="c-id">${d.id}</span>
-      <span class="c-driver">${driver}</span>
-      ${type === 'qc' ? `<span class="c-ship">${ship}</span>` : ''}
-      <span class="c-loc">${locStr}</span>
+      <span class="c-id">${esc(d.id)}</span>
+      <span class="c-driver">${esc(driver)}</span>
+      ${type === 'qc' ? `<span class="c-ship">${esc(ship)}</span>` : ''}
+      <span class="c-loc">${esc(locStr)}</span>
     </div>`;
   },
 
