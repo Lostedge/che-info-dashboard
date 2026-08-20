@@ -25,6 +25,7 @@ class SSEHandler(BaseHTTPRequestHandler):
     lock = threading.Lock()
     logger = logging.getLogger(__name__)
     on_client_connect = None
+    max_clients: int = 20
 
     MIME_TYPES = {
         '.html': 'text/html',
@@ -40,13 +41,9 @@ class SSEHandler(BaseHTTPRequestHandler):
         '.woff2': 'font/woff2',
     }
 
-    def _get_static_dir(self):
-        if getattr(sys, 'frozen', False):
-            base_dir = os.path.dirname(sys.executable)
-        else:
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            base_dir = os.path.dirname(current_dir)
-        return os.path.join(base_dir, 'web', 'static')
+    def setup(self):
+        super().setup()
+        self.write_lock = threading.Lock()
 
     def handle(self):
         try:
@@ -63,29 +60,25 @@ class SSEHandler(BaseHTTPRequestHandler):
             else:
                 self.send_response(404)
                 self.end_headers()
-        except Exception:
-            pass
-
-    def setup(self):
-        super().setup()
-        self.write_lock = threading.Lock()    # 该客户端独立写锁
+        except Exception as e:
+            self.logger.error(f"处理请求时发生错误: {e}")
 
     def _handle_sse(self):
-        self.send_response(200)
-        self.send_header('Content-Type', 'text/event-stream')
-        self.send_header('Cache-Control', 'no-cache')
-        self.send_header('Connection', 'keep-alive')
-        self.send_header('Content-Security-Policy',
-            "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'self'; base-uri 'self'; object-src 'none'")
-        self.send_header('X-Content-Type-Options', 'nosniff')
-        self.end_headers()
-
-        with self.lock:
-            self.__class__.clients.append(self)
-            client_ip = self.client_address[0]
-            self.logger.info(f"SSE 客户端连接: {client_ip}，当前连接数: {len(self.clients)}")
+        if not self._register_client():
+            self.send_response(503)
+            self.send_header('Content-Type', 'text/plain; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(b'Too many SSE connections')
+            return
 
         try:
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/event-stream')
+            self.send_header('Cache-Control', 'no-cache')
+            self.send_header('Connection', 'keep-alive')
+            self._send_security_headers()
+            self.end_headers()
+
             if self.__class__.on_client_connect:
                 self.__class__.on_client_connect()
 
@@ -94,26 +87,44 @@ class SSEHandler(BaseHTTPRequestHandler):
                     self.wfile.write(b': heartbeat\n\n')
                     self.wfile.flush()
                 time.sleep(15)
-        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, OSError):
             pass
         finally:
             with self.lock:
                 if self in self.__class__.clients:
                     self.__class__.clients.remove(self)
-                    self.logger.info(f"SSE 客户端断开: {client_ip}，当前连接数: {len(self.clients)}")
+                    self.logger.info(f"SSE 客户端断开: {self.client_ip}，当前连接数: {len(self.clients)}")
+
+    def _register_client(self):
+        """尝试注册 SSE 客户端，成功返回 True，满员返回 False"""
+        with self.lock:
+            if len(self.__class__.clients) >= self.__class__.max_clients:
+                return False
+
+            self.__class__.clients.append(self)
+            self.client_ip = self.client_address[0]
+            self.logger.info(
+                f"SSE 客户端连接: {self.client_ip}，当前连接数: {len(self.clients)}"
+            )
+            return True
 
     def _handle_static(self):
         static_dir = self._get_static_dir()
-        rel_path = self.path.lstrip('/')
+        rel_path = self.path.split('?', 1)[0].lstrip('/')
 
         if not rel_path:
             rel_path = 'index.html'
 
-        file_path = os.path.normpath(os.path.join(static_dir, rel_path))
-        if not file_path.startswith(os.path.normpath(static_dir) + os.sep):
-            self.send_response(403)
-            self.end_headers()
+        file_path = os.path.realpath(os.path.join(static_dir, rel_path))
+        try:
+            inside = os.path.commonpath([file_path, static_dir]) == static_dir
+        except ValueError:
+            inside = False
+        if not inside or os.path.isdir(file_path):
+            self.send_error(403)
             return
+
         ext = os.path.splitext(file_path)[1].lower()
         content_type = self.MIME_TYPES.get(ext, 'application/octet-stream')
         try:
@@ -121,14 +132,25 @@ class SSEHandler(BaseHTTPRequestHandler):
                 content = f.read()
             self.send_response(200)
             self.send_header('Content-Type', content_type)
-            self.send_header('Content-Security-Policy',
-                "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'self'; base-uri 'self'; object-src 'none'")
-            self.send_header('X-Content-Type-Options', 'nosniff')
+            self._send_security_headers()
             self.end_headers()
             self.wfile.write(content)
-        except FileNotFoundError:
-            self.send_response(404)
-            self.end_headers()
+        except OSError:
+            self.send_error(404)
+
+    def _get_static_dir(self):
+        if getattr(sys, 'frozen', False):
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            base_dir = os.path.dirname(current_dir)
+        return os.path.realpath(os.path.join(base_dir, 'web', 'static'))
+
+    def _send_security_headers(self):
+        self.send_header('Content-Security-Policy',
+            "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
+            "connect-src 'self'; frame-ancestors 'self'; base-uri 'self'; object-src 'none'")
+        self.send_header('X-Content-Type-Options', 'nosniff')
 
     def log_message(self, format, *args):
         pass
@@ -159,15 +181,18 @@ class SSEHandler(BaseHTTPRequestHandler):
 class SSEServer:
     """SSE 服务器"""
 
-    def __init__(self, host: str, port: int):
+    def __init__(self, host: str, port: int, max_clients: int = 20):
         self.host = host
         self.port = port
+        self.max_clients = max_clients
         self.server: Optional[ThreadingHTTPServer] = None
         self.thread: Optional[threading.Thread] = None
         self.logger = logging.getLogger(__name__)
         self.running = False
 
     def start(self):
+        SSEHandler.max_clients = self.max_clients
+
         self.server = ThreadingHTTPServer((self.host, self.port), SSEHandler)
         self.thread = threading.Thread(target=self._run, daemon=True)
         self.running = True

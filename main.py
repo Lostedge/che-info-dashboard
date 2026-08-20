@@ -64,7 +64,8 @@ def main():
     sse_cfg = config.get('sse', {})
     sse_server = SSEServer(
         host=sse_cfg.get('host', '0.0.0.0'),
-        port=sse_cfg.get('port', 8765)
+        port=sse_cfg.get('port', 8765),
+        max_clients=sse_cfg.get('max_clients', 20),
     )
 
     # 设置客户端连接回调
