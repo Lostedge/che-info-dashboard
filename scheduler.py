@@ -72,7 +72,7 @@ class Scheduler:
             s['id'] for s in self._cache.get('ship_info', []) if s.get('beg_work_tim') is not None
         ]
         if working_voyages:
-            self._fetch_and_push('PROG', executor.get_ship_progress, 'ship_progress', working_voyages)
+            self._fetch_and_push('PROG', executor.get_ship_progress, 'ship_progress', working_voyages, transform=self._merge_progress)
 
     def _fetch_stats(self):
         """获取并推送作业统计"""
@@ -88,11 +88,13 @@ class Scheduler:
         ]:
             self._fetch_and_push(label, fetcher, push_type, day_start, period_start, period_end)
 
-    def _fetch_and_push(self, label, fetcher, push_type, *args):
+    def _fetch_and_push(self, label, fetcher, push_type, *args, transform=None):
         """获取数据并推送、缓存，记录日志"""
         try:
             data = fetcher(*args)
             if data is not None:
+                if transform:
+                    data = transform(data)
                 self.sse_server.push({'type': push_type, 'data': data})
                 self._cache[push_type] = data
                 self.logger.info(f"{label}: {len(data)}")
@@ -100,6 +102,16 @@ class Scheduler:
                 self.logger.error(f"{label} 获取失败")
         except Exception as e:
             self.logger.error(f"{label} 获取异常: {e}")
+
+    def _merge_progress(self, data: list):
+        """作业完成后视图移除行导致归零，用历史缓存兜底（只增不减）"""
+        old = {p['id']: p for p in self._cache.get('ship_progress', [])}
+        for p in data:
+            o = old.get(p['id'])
+            if o:
+                for f in ('i_plan_num', 'i_done_num', 'e_plan_num', 'e_done_num'):
+                    p[f] = max(p.get(f, 0), o.get(f, 0))
+        return data
 
     def _get_period_bounds(self, interval_minutes: int, now: datetime) -> tuple:
         """返回对齐到 interval 边界的时间窗口"""
