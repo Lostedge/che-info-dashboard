@@ -497,6 +497,11 @@ main {
   gap: 2rem;
 }
 
+.sc-progress-wrap--idle { 
+  height: 4.75rem;
+  width: 100%;
+}
+
 /* 折线图 */
 .sc-spark {
   flex: 1;

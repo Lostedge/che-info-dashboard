@@ -200,7 +200,7 @@ const Ships = {
       const spark = this._sparkline(s);
       const progressBlock = (progress || spark)
         ? `<div class="sc-progress-wrap">${progress}${spark}</div>`
-        : '';
+        : '<div class="sc-progress-wrap--idle"></div>';
 
       return `<div class="ship-card state-${st.css}" title="${esc(s.ship_label || s.id)}">
         <div class="sc-info">
