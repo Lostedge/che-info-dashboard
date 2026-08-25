@@ -14,6 +14,31 @@ function escapeHtml(str) {
   })[c]);
 }
 
+
+/* ============================================================
+   Config - 处理静态配置文件（web/static/config.json）
+   ============================================================ */
+
+const Config = {
+  data: null,
+  async load() {
+    try {
+      const r = await fetch('config.json', { cache: 'no-cache' });
+      this.data = await r.json();
+    } catch { this.data = null; }
+  },
+  ids(type) {
+    return this.data?.devices?.[type] ?? null;
+  },
+};
+
+/** 按配置过滤设备；ids 为 null 时返回全部 */
+function filterByConfig(devices, type) {
+  const ids = Config.ids(type);
+  return ids ? devices.filter(d => ids.includes(d.id)) : devices;
+}
+
+
 /* ============================================================
    State
    ============================================================ */
@@ -247,13 +272,13 @@ const SSEClient = {
 
       case 'ym_info':
         State.merge(data);
-        Cards.render('rtg', State.getByType('2'));
-        Cards.render('fl',  State.getByType('3'));
+        Cards.render('rtg', filterByConfig(State.getByType('2'), 'rtg'));
+        Cards.render('fl',  filterByConfig(State.getByType('3'), 'fl'));
         break;
 
       case 'qc_info':
         State.merge(data);
-        Cards.render('qc', State.getByType('1'));
+        Cards.render('qc', filterByConfig(State.getByType('1'), 'qc'));
         break;
 
       case 'ship_info':
@@ -263,15 +288,15 @@ const SSEClient = {
 
       case 'ym_stats':
         State.merge(data);
-        Charts.update('chart-rtg', State.getByType('2'));
-        Charts.update('chart-fl',  State.getByType('3'));
+        Charts.update('chart-rtg', filterByConfig(State.getByType('2'), 'rtg'));
+        Charts.update('chart-fl',  filterByConfig(State.getByType('3'), 'fl'));
         Charts.syncYAxis();
         Charts.updateSummaries();
         break;
 
       case 'qc_stats':
         State.merge(data);
-        Charts.update('chart-qc', State.getByType('1'));
+        Charts.update('chart-qc', filterByConfig(State.getByType('1'), 'qc'));
         Charts.syncYAxis();
         Charts.updateSummaries();
         break;
@@ -284,9 +309,10 @@ const SSEClient = {
    启动
    ============================================================ */
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   Header.init();
   Ships.init();
   Charts.init();
+  await Config.load();
   SSEClient.init();
 });

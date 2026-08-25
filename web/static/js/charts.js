@@ -160,9 +160,9 @@ const Charts = {
   /** 更新所有 chart-header 总计 */
   updateSummaries() {
     const map = {
-      'summary-rtg': State.getByType('2'),
-      'summary-qc':  State.getByType('1'),
-      'summary-fl':  State.getByType('3'),
+      'summary-rtg': filterByConfig(State.getByType('2'), 'rtg'),
+      'summary-qc':  filterByConfig(State.getByType('1'), 'qc'),
+      'summary-fl':  filterByConfig(State.getByType('3'), 'fl'),
     };
 
     for (const [id, list] of Object.entries(map)) {
