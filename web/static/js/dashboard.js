@@ -204,18 +204,17 @@ const Cards = {
 
   _card(type, d) {
     const esc    = escapeHtml;
-    const alive  = d.status !== '0';
+    const st     = this._machState(d);
+    const stateCls = st === 'online' ? '' : ` ${st}`;
     const loc    = this._loc(type, d);
-    const driver = alive ? (d.driver || '') : '';
-    const ship   = (alive && type === 'qc') ? (d.ship_name || '').slice(0, 10) : '';
-    const locStr = (alive || type === 'rtg') ? loc : '';
+    const ship   = (d.ship_name || '').slice(0, 10);
 
-    return `<div class="card${alive ? '' : ' offline'}" title="${esc(d.id)}  ${esc(d.driver || '')}  ${esc(loc)}">
+    return `<div class="card card-${type}${stateCls}">
       <span class="c-bar ${this._bar(d)}"></span>
       <span class="c-id">${esc(d.id)}</span>
-      <span class="c-driver">${esc(driver)}</span>
+      <span class="c-driver">${esc(d.driver || '')}</span>
       ${type === 'qc' ? `<span class="c-ship">${esc(ship)}</span>` : ''}
-      <span class="c-loc">${esc(locStr)}</span>
+      <span class="c-loc">${esc(loc)}</span>
     </div>`;
   },
 
@@ -227,14 +226,16 @@ const Cards = {
     return '';
   },
 
+  /** 设备状态：'online' | 'fault' | 'offline' */
+  _machState(d) {
+    if (d.status === '1') return 'online';
+    if (d.status === '2' || d.status === '3') return 'fault';
+    return 'offline';
+  },
+
   /** 状态条颜色 */
   _bar(d) {
-    switch (d.status) {
-      case '1': return 'c-online';
-      case '2':
-      case '3': return 'c-fault';
-      default: return 'c-offline';
-    }
+    return `c-${this._machState(d)}`;
   },
 };
 
