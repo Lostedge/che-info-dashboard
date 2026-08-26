@@ -209,7 +209,7 @@ const Ships = {
             <span class="sc-ship">${esc(name)}</span>
             <span class="sc-voyage">${esc(voyage)}</span>
           </span>
-          <span class="sc-time">${st.label} ${st.time}</span>
+          <span class="sc-time">${st.label}${st.time}</span>
         </div>
         ${progressBlock}
       </div>`;

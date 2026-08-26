@@ -424,6 +424,7 @@ main {
 }
 
 .ship-card .sc-time {
+  flex-shrink: 0;
   font-size: 1.15rem;
   font-weight: 500;
   color: var(--c-text);
