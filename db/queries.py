@@ -64,7 +64,7 @@ QC_INFO = """
     FROM JZCT_TOS.SHIP_MACH_PLAC p
     LEFT JOIN JZCT_CODE.C_OPERATOR o ON p.MACH_OPER_COD = o.OPER_COD
     LEFT JOIN JZCT_TOS_HIS.SHIP_VOYAGE v ON p.VOYAGE_NO = v.VOYAGE_NO
-    WHERE p.MACH_NO LIKE 'AQ%'
+    WHERE p.MACH_NO IN ('AQ101','AQ102','AQ103','AQ104','AQ105','AQ106')
 """
 
 # 船舶信息
@@ -79,7 +79,10 @@ SHIP_INFO = """
         p.RTB                                                   AS rtb,
         p.BEG_WORK_TIM                                          AS beg_work_tim
     FROM JZCT_TOS_HIS.SHIP_VOYAGE p
-    WHERE p.SHIP_STAT_ID IN ('Y', 'C', 'D', 'E')
+    WHERE (p.SHIP_STAT_ID IN ('Y', 'C', 'D')
+        OR (p.SHIP_STAT_ID = 'E'
+            AND p.ETA >= SYSDATE
+            AND p.ETA <  SYSDATE + 2))
 """
 
 # 船舶作业进度

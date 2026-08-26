@@ -302,7 +302,17 @@ main {
   font-family: "Cascadia Code", "Consolas", "SF Mono", monospace;
 }
 
-.card.offline .c-id, .card.offline .c-loc { color: var(--c-dim); }
+/* ---- 离线 ---- */
+.card.offline .c-id     { color: var(--c-dim); }
+.card.offline .c-driver { display: none; }
+.card.offline .c-ship   { display: none; }
+.card.offline .c-loc    { display: none; }
+.card-rtg.offline .c-loc { display: block; color: var(--c-dim); }
+
+/* ---- 故障 ---- */
+.card.fault .c-driver { color: var(--c-dim); }
+.card.fault .c-ship   { color: var(--c-dim); }
+.card.fault .c-loc    { color: var(--c-dim); }
 
 /* 占位文本 */
 .card-placeholder {
@@ -381,6 +391,12 @@ main {
   background: var(--c-surface2);
   box-shadow: 0 0 0.8rem rgba(0, 0, 0, 0.35);
   transition: border-color 0.2s;
+  animation: ship-in 0.4s ease-out;
+}
+
+@keyframes ship-in {
+  from { opacity: 0; transform: translateY(0.6rem); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .ship-card--empty {

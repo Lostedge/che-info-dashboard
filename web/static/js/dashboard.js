@@ -19,6 +19,30 @@ const toPct = (done, plan) => (plan ? Math.min(100, Math.round((done / plan) * 1
 
 
 /* ============================================================
+   Config - 处理静态配置文件（web/static/config.json）
+   ============================================================ */
+
+const Config = {
+  data: null,
+  async load() {
+    try {
+      const r = await fetch('config.json', { cache: 'no-cache' });
+      this.data = await r.json();
+    } catch { this.data = null; }
+  },
+  ids(type) {
+    return this.data?.devices?.[type] ?? null;
+  },
+};
+
+/** 按配置过滤设备；ids 为 null 时返回全部 */
+function filterByConfig(devices, type) {
+  const ids = Config.ids(type);
+  return ids ? devices.filter(d => ids.includes(d.id)) : devices;
+}
+
+
+/* ============================================================
    State
    ============================================================ */
 
@@ -317,18 +341,17 @@ const Cards = {
 
   _card(type, d) {
     const esc    = escapeHtml;
-    const alive  = d.status !== '0';
+    const st     = this._machState(d);
+    const stateCls = st === 'online' ? '' : ` ${st}`;
     const loc    = this._loc(type, d);
-    const driver = alive ? (d.driver || '') : '';
-    const ship   = (alive && type === 'qc') ? (d.ship_name || '').slice(0, 10) : '';
-    const locStr = (alive || type === 'rtg') ? loc : '';
+    const ship   = (d.ship_name || '').slice(0, 10);
 
-    return `<div class="card${alive ? '' : ' offline'}" title="${esc(d.id)}  ${esc(d.driver || '')}  ${esc(loc)}">
+    return `<div class="card card-${type}${stateCls}">
       <span class="c-bar ${this._bar(d)}"></span>
       <span class="c-id">${esc(d.id)}</span>
-      <span class="c-driver">${esc(driver)}</span>
+      <span class="c-driver">${esc(d.driver || '')}</span>
       ${type === 'qc' ? `<span class="c-ship">${esc(ship)}</span>` : ''}
-      <span class="c-loc">${esc(locStr)}</span>
+      <span class="c-loc">${esc(loc)}</span>
     </div>`;
   },
 
@@ -340,14 +363,16 @@ const Cards = {
     return '';
   },
 
+  /** 设备状态：'online' | 'fault' | 'offline' */
+  _machState(d) {
+    if (d.status === '1') return 'online';
+    if (d.status === '2' || d.status === '3') return 'fault';
+    return 'offline';
+  },
+
   /** 状态条颜色 */
   _bar(d) {
-    switch (d.status) {
-      case '1': return 'c-online';
-      case '2':
-      case '3': return 'c-fault';
-      default: return 'c-offline';
-    }
+    return `c-${this._machState(d)}`;
   },
 };
 
@@ -385,13 +410,13 @@ const SSEClient = {
 
       case 'ym_info':
         State.merge(data);
-        Cards.render('rtg', State.getByType('2'));
-        Cards.render('fl',  State.getByType('3'));
+        Cards.render('rtg', filterByConfig(State.getByType('2'), 'rtg'));
+        Cards.render('fl',  filterByConfig(State.getByType('3'), 'fl'));
         break;
 
       case 'qc_info':
         State.merge(data);
-        Cards.render('qc', State.getByType('1'));
+        Cards.render('qc', filterByConfig(State.getByType('1'), 'qc'));
         break;
 
       case 'ship_info':
@@ -407,15 +432,15 @@ const SSEClient = {
 
       case 'ym_stats':
         State.merge(data);
-        Charts.update('chart-rtg', State.getByType('2'));
-        Charts.update('chart-fl',  State.getByType('3'));
+        Charts.update('chart-rtg', filterByConfig(State.getByType('2'), 'rtg'));
+        Charts.update('chart-fl',  filterByConfig(State.getByType('3'), 'fl'));
         Charts.syncYAxis();
         Charts.updateSummaries();
         break;
 
       case 'qc_stats':
         State.merge(data);
-        Charts.update('chart-qc', State.getByType('1'));
+        Charts.update('chart-qc', filterByConfig(State.getByType('1'), 'qc'));
         Charts.syncYAxis();
         Charts.updateSummaries();
         break;
@@ -428,10 +453,11 @@ const SSEClient = {
    启动
    ============================================================ */
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   Header.init();
   Ships.init();
   Charts.init();
   State._initHistory();
+  await Config.load();
   SSEClient.init();
 });
