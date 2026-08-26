@@ -79,5 +79,8 @@ SHIP_INFO = """
         p.RTB                                                   AS rtb,
         p.BEG_WORK_TIM                                          AS beg_work_tim
     FROM JZCT_TOS_HIS.SHIP_VOYAGE p
-    WHERE p.SHIP_STAT_ID IN ('Y', 'C', 'D', 'E')
+    WHERE (p.SHIP_STAT_ID IN ('Y', 'C', 'D')
+        OR (p.SHIP_STAT_ID = 'E'
+            AND p.ETA >= SYSDATE
+            AND p.ETA <  SYSDATE + 2))
 """
