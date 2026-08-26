@@ -103,6 +103,7 @@ const State = {
     const now = Date.now();
     for (const p of list || []) {
       if (p.id == null) continue;
+      if (!(Number(p.i_plan_num) || 0) && !(Number(p.e_plan_num) || 0)) continue;
       const h = (this.shipHistory[p.id] ||= []);
       h.push({
         t: now,
