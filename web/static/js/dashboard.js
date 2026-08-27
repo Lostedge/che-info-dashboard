@@ -189,13 +189,13 @@ const Ships = {
       return;
     }
 
-    // 取"最早到达的 MAX_SHIPS 艘"（按 开工/靠泊/抵港 时间降序，取末尾）
-    const top4 = [...ships]
+    // 对船舶排序：作业/靠泊在前（按泊位），预报在后（按时间）
+    const topN = [...ships]
       .map(s => ({ ...s, _st: this._shipState(s) }))
-      .sort((a, b) => this._timeKey(b).localeCompare(this._timeKey(a)))
-      .slice(-this.MAX_SHIPS);
+      .sort(this._sortShip.bind(this))
+      .slice(0, this.MAX_SHIPS);
 
-    const cards = top4.map(s => {
+    const cards = topN.map(s => {
       const esc = escapeHtml;
       const st = s._st;
       const p = this._progress(s);
@@ -239,7 +239,7 @@ const Ships = {
       </div>`;
     }).join('');
 
-    const empty = Array(Math.max(0, this.MAX_SHIPS - top4.length))
+    const empty = Array(Math.max(0, this.MAX_SHIPS - topN.length))
       .fill('<div class="ship-card ship-card--empty"></div>').join('');
 
     this.el.innerHTML = cards + empty;
@@ -247,6 +247,18 @@ const Ships = {
     this.el.querySelectorAll('.bar-fill').forEach(el => {
       el.style.width = `${el.dataset.pct}%`;
     });
+  },
+
+  /** 排序船舶 */
+  _sortShip(a, b) {
+    const rank = s => (s.beg_work_tim || s.rtb) ? 0 : 1;   // 作业/靠泊=0，预报=1
+    const d = rank(a) - rank(b);
+    if (d) return d;
+    if (rank(a) === 0) {
+      const key = s => s.berth || this._timeKey(s);
+      return key(a).localeCompare(key(b), undefined, { numeric: true });
+    }
+    return this._timeKey(a).localeCompare(this._timeKey(b));
   },
 
   /** 排序时间键：开工 > 靠泊 > 预计抵港 */
@@ -345,14 +357,24 @@ const Cards = {
     const stateCls = st === 'online' ? '' : ` ${st}`;
     const loc    = this._loc(type, d);
     const ship   = (d.ship_name || '').slice(0, 10);
+    const way    = this._workWay(d.work_way, type);
 
     return `<div class="card card-${type}${stateCls}">
       <span class="c-bar ${this._bar(d)}"></span>
       <span class="c-id">${esc(d.id)}</span>
       <span class="c-driver">${esc(d.driver || '')}</span>
       ${type === 'qc' ? `<span class="c-ship">${esc(ship)}</span>` : ''}
+      ${way ? `<span class="c-way c-way-${esc(d.work_way)}">${esc(way)}</span>` : ''}
       <span class="c-loc">${esc(loc)}</span>
     </div>`;
+  },
+
+  _workWay(code, type) {
+    if (!code) return '';
+    const cfg = Config.data?.work_way;
+    if (!cfg) return '';
+    if (!cfg.types?.includes(type) || !cfg.display?.includes(code)) return '';
+    return cfg.labels?.[code] ?? code;
   },
 
   _loc(type, d) {
@@ -382,10 +404,18 @@ const Cards = {
    ============================================================ */
 
 const SSEClient = {
-  init() {
+  MAX_RETRIES: 0,     // 0 = 不限次数
+  BASE_DELAY: 1000,   // 初始延迟
+  MAX_DELAY: 30000,   // 上限
+  retryCount: 0,
+
+  init() { this.connect(); },
+
+  connect() {
     const es = new EventSource('/events');
 
     es.onopen = () => {
+      this.retryCount = 0;
       console.log('[SSE] 已连接');
       Header.setConnected(true);
     };
@@ -395,7 +425,19 @@ const SSEClient = {
       catch (_) { /* 心跳 */ }
     };
 
-    es.onerror = () => Header.setConnected(false);
+    es.onerror = () => {
+      es.close();
+      Header.setConnected(false);
+      this._reconnect();
+    };
+  },
+
+  _reconnect() {
+    if (this.MAX_RETRIES > 0 && this.retryCount >= this.MAX_RETRIES) return;
+    const delay = Math.min(this.BASE_DELAY * 2 ** this.retryCount, this.MAX_DELAY)
+                + Math.random() * 500;
+    this.retryCount++;
+    setTimeout(() => this.connect(), delay);
   },
 
   _route(msg) {

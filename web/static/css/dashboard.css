@@ -291,8 +291,18 @@ main {
   font-size: 1.3rem;
 }
 
+.card .c-way {
+  flex: 0.8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+  color: var(--c-soft);
+  font-size: 1.3rem;
+}
+
 .card .c-loc {
-  flex: 1;
+  flex: 1.5;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -302,16 +312,26 @@ main {
   font-family: "Cascadia Code", "Consolas", "SF Mono", monospace;
 }
 
+.card-qc .c-loc { 
+  flex: 1.2;
+}
+
+/* 作业方式颜色 */
+.card .c-way-SI { color: var(--chart-20-text); }
+.card .c-way-SO { color: var(--chart-40-text); }
+
 /* ---- 离线 ---- */
 .card.offline .c-id     { color: var(--c-dim); }
 .card.offline .c-driver { display: none; }
 .card.offline .c-ship   { display: none; }
+.card.offline .c-way    { display: none; }
 .card.offline .c-loc    { display: none; }
 .card-rtg.offline .c-loc { display: block; color: var(--c-dim); }
 
 /* ---- 故障 ---- */
 .card.fault .c-driver { color: var(--c-dim); }
 .card.fault .c-ship   { color: var(--c-dim); }
+.card.fault .c-way    { display: none; }
 .card.fault .c-loc    { color: var(--c-dim); }
 
 /* 占位文本 */

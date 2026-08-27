@@ -46,7 +46,8 @@ YM_INFO = """
     SELECT
         SUBSTR(p.MACH_NO, -3)                       AS id,
         p.CURRENT_ID                                AS status,
-        COALESCE(o.OPER_NAM, p.MACH_OPER_COD)       AS driver
+        COALESCE(o.OPER_NAM, p.MACH_OPER_COD)       AS driver,
+        p.WORK_WAY                                  AS work_way
     FROM JZCT_TOS.CY_MACH_PLAC p
     LEFT JOIN JZCT_CODE.C_OPERATOR o ON p.MACH_OPER_COD = o.OPER_COD
     WHERE p.MACH_NO LIKE 'CQ%'
@@ -60,6 +61,7 @@ QC_INFO = """
         p.CURRENT_ID                                AS status,
         COALESCE(o.OPER_NAM, p.MACH_OPER_COD)       AS driver,
         COALESCE(v.SHIP_NAM, p.VOYAGE_NO)           AS ship_name,
+        p.WORK_WAY                                  AS work_way,
         p.CUR_BAY_NO                                AS bay
     FROM JZCT_TOS.SHIP_MACH_PLAC p
     LEFT JOIN JZCT_CODE.C_OPERATOR o ON p.MACH_OPER_COD = o.OPER_COD
