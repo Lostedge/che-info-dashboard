@@ -267,10 +267,18 @@ const Cards = {
    ============================================================ */
 
 const SSEClient = {
-  init() {
+  MAX_RETRIES: 0,     // 0 = 不限次数
+  BASE_DELAY: 1000,   // 初始延迟
+  MAX_DELAY: 30000,   // 上限
+  retryCount: 0,
+
+  init() { this.connect(); },
+
+  connect() {
     const es = new EventSource('/events');
 
     es.onopen = () => {
+      this.retryCount = 0;
       console.log('[SSE] 已连接');
       Header.setConnected(true);
     };
@@ -280,7 +288,19 @@ const SSEClient = {
       catch (_) { /* 心跳 */ }
     };
 
-    es.onerror = () => Header.setConnected(false);
+    es.onerror = () => {
+      es.close();
+      Header.setConnected(false);
+      this._reconnect();
+    };
+  },
+
+  _reconnect() {
+    if (this.MAX_RETRIES > 0 && this.retryCount >= this.MAX_RETRIES) return;
+    const delay = Math.min(this.BASE_DELAY * 2 ** this.retryCount, this.MAX_DELAY)
+                + Math.random() * 500;
+    this.retryCount++;
+    setTimeout(() => this.connect(), delay);
   },
 
   _route(msg) {
