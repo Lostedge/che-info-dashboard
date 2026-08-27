@@ -208,14 +208,24 @@ const Cards = {
     const stateCls = st === 'online' ? '' : ` ${st}`;
     const loc    = this._loc(type, d);
     const ship   = (d.ship_name || '').slice(0, 10);
+    const way    = this._workWay(d.work_way);
 
     return `<div class="card card-${type}${stateCls}">
       <span class="c-bar ${this._bar(d)}"></span>
       <span class="c-id">${esc(d.id)}</span>
       <span class="c-driver">${esc(d.driver || '')}</span>
       ${type === 'qc' ? `<span class="c-ship">${esc(ship)}</span>` : ''}
+      ${way ? `<span class="c-way c-way-${esc(d.work_way)}">${esc(way)}</span>` : ''}
       <span class="c-loc">${esc(loc)}</span>
     </div>`;
+  },
+
+  _workWay(workWay) {
+    if (workWay === 'SI') return '卸船';
+    if (workWay === 'SO') return '装船';
+    if (workWay === 'TI') return '收箱';
+    if (workWay === 'TO') return '提箱';
+    return '';
   },
 
   _loc(type, d) {
