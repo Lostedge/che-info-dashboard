@@ -118,13 +118,13 @@ const Ships = {
       return;
     }
 
-    // 取"最早到达的 MAX_SHIPS 艘"（按 开工/靠泊/抵港 时间降序，取末尾）
-    const top4 = [...ships]
+    // 对船舶排序：作业/靠泊在前（按泊位），预报在后（按时间）
+    const topN = [...ships]
       .map(s => ({ ...s, _st: this._shipState(s) }))
-      .sort((a, b) => this._timeKey(b).localeCompare(this._timeKey(a)))
-      .slice(-this.MAX_SHIPS);
+      .sort(this._sortShip.bind(this))
+      .slice(0, this.MAX_SHIPS);
 
-    const cards = top4.map(s => {
+    const cards = topN.map(s => {
       const st = s._st;
       const esc = escapeHtml;
       const { name, voyage } = this._splitLabel(s.ship_label || s.id || '--');
@@ -137,10 +137,22 @@ const Ships = {
       </div>`;
     }).join('');
 
-    const empty = Array(Math.max(0, this.MAX_SHIPS - top4.length))
+    const empty = Array(Math.max(0, this.MAX_SHIPS - topN.length))
       .fill('<div class="ship-card ship-card--empty"></div>').join('');
 
     this.el.innerHTML = cards + empty;
+  },
+
+  /** 排序船舶 */
+  _sortShip(a, b) {
+    const rank = s => (s.beg_work_tim || s.rtb) ? 0 : 1;   // 作业/靠泊=0，预报=1
+    const d = rank(a) - rank(b);
+    if (d) return d;
+    if (rank(a) === 0) {
+      const key = s => s.berth || this._timeKey(s);
+      return key(a).localeCompare(key(b), undefined, { numeric: true });
+    }
+    return this._timeKey(a).localeCompare(this._timeKey(b));
   },
 
   /** 排序时间键：开工 > 靠泊 > 预计抵港 */
