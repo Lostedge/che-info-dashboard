@@ -63,16 +63,12 @@ class Scheduler:
         for label, fetcher, push_type in [
             ('YM', executor.get_ym_info, 'ym_info'),
             ('QC', executor.get_qc_info, 'qc_info'),
-            ('SHIP', executor.get_ship_info, 'ship_info'),
         ]:
-            self._fetch_and_push(label, fetcher, push_type)
-
-        # 船舶作业进度
-        working_voyages = [
-            s['id'] for s in self._cache.get('ship_info', []) if s.get('beg_work_tim') is not None
-        ]
-        if working_voyages:
-            self._fetch_and_push('PROG', executor.get_ship_progress, 'ship_progress', working_voyages, transform=self._merge_progress)
+            data = self._try_query(label, fetcher)
+            if data is not None:
+                self._push(label, push_type, data)
+        
+        self._fetch_ship(executor)
 
     def _fetch_stats(self):
         """获取并推送作业统计"""
@@ -86,22 +82,41 @@ class Scheduler:
             ('YM', executor.get_ym_stats, 'ym_stats'),
             ('QC', executor.get_qc_stats, 'qc_stats'),
         ]:
-            self._fetch_and_push(label, fetcher, push_type, day_start, period_start, period_end)
+            data = self._try_query(label, fetcher, day_start, period_start, period_end)
+            if data is not None:
+                self._push(label, push_type, data)
 
-    def _fetch_and_push(self, label, fetcher, push_type, *args, transform=None):
-        """获取数据并推送、缓存，记录日志"""
+    def _fetch_ship(self, executor):
+        """获取并推送船舶信息与作业进度"""
+        ships = self._try_query('SHIP', executor.get_ship_info)
+        if ships is None:
+            return
+        self._push('SHIP', 'ship_info', ships)
+
+        working_voyages = [s['id'] for s in ships if s.get('beg_work_tim') is not None]
+        if not working_voyages:
+            return
+        prog = self._try_query('PROG', executor.get_ship_progress, working_voyages)
+        if prog is None:
+            return
+        self._push('PROG', 'ship_progress', self._merge_progress(prog))
+
+    def _try_query(self, label, fetcher, *args):
+        """执行查询，失败返回 None"""
         try:
             data = fetcher(*args)
             if data is not None:
-                if transform:
-                    data = transform(data)
-                self.sse_server.push({'type': push_type, 'data': data})
-                self._cache[push_type] = data
-                self.logger.info(f"{label}: {len(data)}")
-            else:
-                self.logger.error(f"{label} 获取失败")
+                return data
+            self.logger.error(f"{label} 获取失败")
         except Exception as e:
             self.logger.error(f"{label} 获取异常: {e}")
+        return None
+
+    def _push(self, label, push_type, data):
+        """推送 + 缓存 + 日志"""
+        self.sse_server.push({'type': push_type, 'data': data})
+        self._cache[push_type] = data
+        self.logger.info(f"{label}: {len(data)}")
 
     def _merge_progress(self, data: list):
         """作业完成后视图移除行导致归零，用历史缓存兜底（只增不减）"""
