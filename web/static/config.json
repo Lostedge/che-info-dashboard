@@ -6,8 +6,25 @@
   },
   
   "work_way": {
-    "labels":  { "SI": "卸船", "SO": "装船", "TI": "收箱", "TO": "提箱" },
-    "display": ["SI", "SO"],
+    "labels":  {
+      "SI": "卸船", 
+      "SO": "装船", 
+      "TI": "收箱", 
+      "TO": "提箱", 
+      "MI": "移下", 
+      "MO": "移上", 
+      "MV": "移箱", 
+      "DT": "调箱"
+    },
+    "display": ["SI", "SO", "TI", "TO"],
     "types":   ["qc", "rtg", "fl"]
+  },
+
+  "ship_history": {
+    "maxPoints": 96,
+    "renderInterval": 1,
+    "renderPoints": 48,
+    "maxShips": 10,
+    "ttlHours": 24
   }
 }

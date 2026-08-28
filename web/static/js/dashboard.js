@@ -52,12 +52,8 @@ const State = {
   shipHistory: {},        // { [shipId]: [{ t, iPct, ePct }] }
 
   // 船舶进度历史配置
-  CFG: {
-    maxPoints: 96,           // 每艘船保留点数上限
-    renderInterval: 2,       // 渲染采样间隔：每 N 个原始点取 1 个
-    renderPoints: 48,        // SVG 最多显示点数（最近 N 个采样点）
-    maxShips: 10,            // 保留的最大船舶数（按最近更新时间排序）
-    ttlHours: 24,            // 无更新时船舶保留时长（小时）
+  get CFG() {
+    return Config.data?.ship_history ?? {};
   },
 
   _initHistory() {
