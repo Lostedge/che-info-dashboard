@@ -531,6 +531,7 @@ main {
 .sc-progress-wrap {
   display: flex;
   align-items: stretch;
+  max-height: 4.75rem;
   gap: 2rem;
 }
 
