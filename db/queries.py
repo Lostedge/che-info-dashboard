@@ -74,9 +74,11 @@ SHIP_INFO = """
     SELECT
         p.VOYAGE_NO                                             AS id,
         p.SHIP_STAT_ID                                          AS status,
-        p.SHIP_NAM 
-            || ' ' || COALESCE(p.I_VOYAGE, '-')
-            || '/' || COALESCE(p.E_VOYAGE, '-')                 AS ship_label,
+        p.SHIP_NAM                                              AS ship_name,
+        COALESCE(p.I_VOYAGE, '-') 
+            || '/' 
+            || COALESCE(p.E_VOYAGE, '-')                        AS voyage,
+        p.BERTH_COD                                             AS berth,
         p.ETA                                                   AS eta,
         p.RTB                                                   AS rtb,
         p.BEG_WORK_TIM                                          AS beg_work_tim
@@ -84,5 +86,5 @@ SHIP_INFO = """
     WHERE (p.SHIP_STAT_ID IN ('Y', 'C', 'D')
         OR (p.SHIP_STAT_ID = 'E'
             AND p.ETA >= SYSDATE
-            AND p.ETA <  SYSDATE + 2))
+            AND p.ETA <  SYSDATE + INTERVAL '1' DAY))
 """

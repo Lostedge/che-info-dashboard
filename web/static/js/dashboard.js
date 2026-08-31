@@ -127,8 +127,11 @@ const Ships = {
     const cards = topN.map(s => {
       const st = s._st;
       const esc = escapeHtml;
-      const { name, voyage } = this._splitLabel(s.ship_label || s.id || '--');
-      return `<div class="ship-card state-${st.css}" title="${esc(s.ship_label || s.id)}">
+      const name   = s.ship_name || s.id || '--';
+      const voyage = s.voyage || '';
+      const title  = `${name} ${voyage}`.trim(); 
+
+      return `<div class="ship-card state-${st.css}" title="${esc(title)}">
         <span class="sc-name">
           <span class="sc-ship">${esc(name)}</span>
           <span class="sc-voyage">${esc(voyage)}</span>
@@ -158,16 +161,6 @@ const Ships = {
   /** 排序时间键：开工 > 靠泊 > 预计抵港 */
   _timeKey(s) {
     return String(s.beg_work_tim || s.rtb || s.eta || '');
-  },
-
-  /** 拆分 ship_label: "船名 进口/出口" → { name, voyage } */
-  _splitLabel(label) {
-    const idx = label.lastIndexOf(' ');
-    if (idx === -1) return { name: label.substring(0, 22), voyage: '' };
-    return {
-      name:   label.substring(0, idx).substring(0, 18),
-      voyage: label.substring(idx + 1).substring(0, 15),
-    };
   },
 
   /** 判定船舶状态 */
