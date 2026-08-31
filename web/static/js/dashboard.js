@@ -131,7 +131,7 @@ const Ships = {
       const voyage = s.voyage || '';
       const title  = `${name} ${voyage}`.trim(); 
 
-      return `<div class="ship-card state-${st.css}" title="${esc(title)}">
+      return `<div class="ship-card state-${st.state}" title="${esc(title)}">
         <span class="sc-name">
           <span class="sc-ship">${esc(name)}</span>
           <span class="sc-voyage">${esc(voyage)}</span>
@@ -148,7 +148,7 @@ const Ships = {
 
   /** 排序船舶 */
   _sortShip(a, b) {
-    const rank = s => (s.beg_work_tim || s.rtb) ? 0 : 1;   // 作业/靠泊=0，预报=1
+    const rank = s => s?._st?.state === 'wait' ? 1 : 0;   // 作业/靠泊=0，预报=1
     const d = rank(a) - rank(b);
     if (d) return d;
     if (rank(a) === 0) {
@@ -166,12 +166,12 @@ const Ships = {
   /** 判定船舶状态 */
   _shipState(s) {
     if (s.beg_work_tim) {
-      return { css: 'work', label: '开工时间：', time: this._fmt(s.beg_work_tim) };
+      return { state: 'work', label: '开工时间：', time: this._fmt(s.beg_work_tim) };
     }
     if (s.rtb) {
-      return { css: 'berth', label: '靠泊时间：', time: this._fmt(s.rtb) };
+      return { state: 'berth', label: '靠泊时间：', time: this._fmt(s.rtb) };
     }
-    return { css: 'wait', label: '预计抵港：', time: this._fmt(s.eta) };
+    return { state: 'wait', label: '预计抵港：', time: this._fmt(s.eta) };
   },
 
   _fmt(raw) {
