@@ -113,16 +113,19 @@ const Ships = {
 
   render(list) {
     const ships = list || State.ships;
-    if (!ships.length) {
-      this.el.innerHTML = '<span class="ship-placeholder">暂无在港船舶</span>';
-      return;
-    }
 
-    // 对船舶排序：作业/靠泊在前（按泊位），预报在后（按时间）
+    // 状态 → 过滤预报船 → 排序 → 截取
+    const showForecast = Config.data?.show_forecast_ships !== false;
     const topN = [...ships]
       .map(s => ({ ...s, _st: this._shipState(s) }))
+      .filter(s => showForecast || s._st.state !== 'wait')
       .sort(this._sortShip.bind(this))
       .slice(0, this.MAX_SHIPS);
+
+    if (!topN.length) {
+      this.el.innerHTML = '<span class="ship-placeholder">暂无船舶</span>';
+      return;
+    }
 
     const cards = topN.map(s => {
       const st = s._st;
