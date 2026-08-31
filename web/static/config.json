@@ -1,4 +1,6 @@
 {
+  "show_forecast_ships": false,
+
   "devices": {
     "qc":  ["101", "102", "103", "104", "105", "106"],
     "rtg": null,

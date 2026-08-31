@@ -180,22 +180,27 @@ const Ships = {
 
   render(list) {
     const ships = list || State.ships;
-    if (!ships.length) {
-      this.el.innerHTML = '<span class="ship-placeholder">暂无在港船舶</span>';
-      return;
-    }
 
-    // 对船舶排序：作业/靠泊在前（按泊位），预报在后（按时间）
+    // 状态 → 过滤预报船 → 排序 → 截取
+    const showForecast = Config.data?.show_forecast_ships !== false;
     const topN = [...ships]
       .map(s => ({ ...s, _st: this._shipState(s) }))
+      .filter(s => showForecast || s._st.state !== 'wait')
       .sort(this._sortShip.bind(this))
       .slice(0, this.MAX_SHIPS);
+
+    if (!topN.length) {
+      this.el.innerHTML = '<span class="ship-placeholder">暂无船舶</span>';
+      return;
+    }
 
     const cards = topN.map(s => {
       const esc = escapeHtml;
       const st = s._st;
       const p = this._progress(s);
-      const { name, voyage } = this._splitLabel(s.ship_label || s.id || '--');
+      const name   = s.ship_name || s.id || '--';
+      const voyage = s.voyage || '';
+      const title  = `${name} ${voyage}`.trim(); 
 
       const progress = (p.iPlan > 0 || p.ePlan > 0)
         ? `<div class="sc-progress">
@@ -223,7 +228,7 @@ const Ships = {
         ? `<div class="sc-progress-wrap">${progress}${spark}</div>`
         : '<div class="sc-progress-wrap--idle"></div>';
 
-      return `<div class="ship-card state-${st.css}" title="${esc(s.ship_label || s.id)}">
+      return `<div class="ship-card state-${st.state}" title="${esc(title)}">
         <div class="sc-info">
           <span class="sc-name">
             <span class="sc-ship">${esc(name)}</span>
@@ -247,7 +252,7 @@ const Ships = {
 
   /** 排序船舶 */
   _sortShip(a, b) {
-    const rank = s => (s.beg_work_tim || s.rtb) ? 0 : 1;   // 作业/靠泊=0，预报=1
+    const rank = s => s?._st?.state === 'wait' ? 1 : 0;   // 作业/靠泊=0，预报=1
     const d = rank(a) - rank(b);
     if (d) return d;
     if (rank(a) === 0) {
@@ -306,12 +311,12 @@ const Ships = {
   /** 判定船舶状态 */
   _shipState(s) {
     if (s.beg_work_tim) {
-      return { css: 'work', label: '开工时间：', time: this._fmt(s.beg_work_tim) };
+      return { state: 'work', label: '开工时间：', time: this._fmt(s.beg_work_tim) };
     }
     if (s.rtb) {
-      return { css: 'berth', label: '靠泊时间：', time: this._fmt(s.rtb) };
+      return { state: 'berth', label: '靠泊时间：', time: this._fmt(s.rtb) };
     }
-    return { css: 'wait', label: '预计抵港：', time: this._fmt(s.eta) };
+    return { state: 'wait', label: '预计抵港：', time: this._fmt(s.eta) };
   },
 
   _fmt(raw) {
