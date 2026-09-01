@@ -456,7 +456,14 @@ main {
 .ship-card .sc-voyage {
   font-size: 1.3rem;
   color: var(--c-dim);
-  margin-left: 0.5rem;
+}
+
+.ship-card .sc-berth {
+  width: 3.3rem;
+  font-size: 1.4rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--c-soft);
 }
 
 .ship-card .sc-time {

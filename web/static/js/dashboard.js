@@ -218,6 +218,7 @@ const Header = {
 
 const Ships = {
   MAX_SHIPS: 4,
+  BERTH_LABELS: { '207B': '207', '208B': '208' },
 
   init() {
     this.el = document.getElementById('ship-info');
@@ -245,6 +246,7 @@ const Ships = {
       const p = this._progress(s);
       const name   = s.ship_name || s.id || '--';
       const voyage = s.voyage || '';
+      const berth  = this._berthLabel(s.berth);
       const title  = `${name} ${voyage}`.trim(); 
 
       const progress = (p.iPlan > 0 || p.ePlan > 0)
@@ -279,6 +281,7 @@ const Ships = {
             <span class="sc-ship">${esc(name)}</span>
             <span class="sc-voyage">${esc(voyage)}</span>
           </span>
+          ${berth ? `<span class="sc-berth">${esc(berth)}</span>` : ''}
           <span class="sc-time">${st.label}${st.time}</span>
         </div>
         ${progressBlock}
@@ -310,6 +313,12 @@ const Ships = {
   /** 排序时间键：开工 > 靠泊 > 预计抵港 */
   _timeKey(s) {
     return String(s.beg_work_tim || s.rtb || s.eta || '');
+  },
+
+  // 泊位映射
+  _berthLabel(berth) {
+    if (!berth) return '';
+    return this.BERTH_LABELS[berth] || '二期';
   },
 
   /** 作业进度 */
@@ -356,12 +365,12 @@ const Ships = {
   /** 判定船舶状态 */
   _shipState(s) {
     if (s.beg_work_tim) {
-      return { state: 'work', label: '开工时间：', time: this._fmt(s.beg_work_tim) };
+      return { state: 'work', label: '开工：', time: this._fmt(s.beg_work_tim) };
     }
     if (s.rtb) {
-      return { state: 'berth', label: '靠泊时间：', time: this._fmt(s.rtb) };
+      return { state: 'berth', label: '靠泊：', time: this._fmt(s.rtb) };
     }
-    return { state: 'wait', label: '预计抵港：', time: this._fmt(s.eta) };
+    return { state: 'wait', label: '预计：', time: this._fmt(s.eta) };
   },
 
   _fmt(raw) {
