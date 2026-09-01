@@ -50,6 +50,7 @@ const State = {
   devices: {},
   ships: [],
   shipHistory: {},        // { [shipId]: [{ t, iPct, ePct }] }
+  shipAliases: {},        // { xx外id: xxid }，ship_info 到达时生成
 
   // 船舶进度历史配置
   get CFG() {
@@ -132,6 +133,50 @@ const State = {
       });
     }
     this._saveHistory();
+  },
+
+  /** 合并外贸船 */
+  _shipName(s)       { return (s.ship_name || '').trim(); },
+  _isForecast(s)     { return !s.beg_work_tim && !s.rtb; },
+  _foreignBase(name) { return name.endsWith('外') ? name.slice(0, -1) : null; },
+
+  buildShipAliases(list) {
+    const aliases = {};
+    if (Config.data?.merge_foreign_ships === false) return aliases;
+    const byName = new Map();
+    for (const s of list) {
+      const n = this._shipName(s);
+      if (!n) continue;
+      const cur = byName.get(n);
+      if (!cur || (this._isForecast(cur) && !this._isForecast(s))) byName.set(n, s);
+    }
+    for (const s of list) {
+      const base = this._foreignBase(this._shipName(s));
+      if (base && byName.has(base)) aliases[s.id] = byName.get(base).id;
+    }
+    return aliases;
+  },
+  
+  mergeForeignShips(list) {
+    this.shipAliases = this.buildShipAliases(list);
+    return list.filter(s => !this.shipAliases[s.id]);
+  },
+
+  mergeForeignProgress(list) {
+    const aliases = this.shipAliases || {};
+    const byId = new Map(list.map(p => [p.id, p]));
+    const FIELDS = ['i_plan_num', 'i_done_num', 'i_queue_num',
+                    'e_plan_num', 'e_done_num', 'e_queue_num'];
+    const keep = [];
+    for (const p of list) {
+      const target = byId.get(aliases[p.id]);
+      if (target) {
+        for (const f of FIELDS) target[f] = (target[f] || 0) + (p[f] || 0);
+        continue;
+      }
+      keep.push(p);
+    }
+    return keep;
   },
 };
 
@@ -463,15 +508,17 @@ const SSEClient = {
         break;
 
       case 'ship_info':
-        State.ships = data;
-        Ships.render(data);
-        break;
-
-      case 'ship_progress':
-        State.mergeShipProgress(data);
-        if (!msg.init) State.pushShipHistory(data);
+        State.ships = State.mergeForeignShips(data);
         Ships.render();
         break;
+
+      case 'ship_progress': {
+        const merged = State.mergeForeignProgress(data);
+        State.mergeShipProgress(merged);
+        if (!msg.init) State.pushShipHistory(merged);
+        Ships.render();
+        break;
+      }
 
       case 'ym_stats':
         State.merge(data);

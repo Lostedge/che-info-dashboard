@@ -1,5 +1,6 @@
 {
   "show_forecast_ships": false,
+  "merge_foreign_ships": true,
 
   "devices": {
     "qc":  ["101", "102", "103", "104", "105", "106"],
