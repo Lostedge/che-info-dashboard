@@ -329,7 +329,7 @@ main {
 /* ---- 故障 ---- */
 .card.fault .c-driver { color: var(--c-dim); }
 .card.fault .c-ship   { color: var(--c-dim); }
-.card.fault .c-way    { display: none; }
+.card.fault .c-way    { color: var(--c-dim); }
 .card.fault .c-loc    { color: var(--c-dim); }
 
 /* 占位文本 */
