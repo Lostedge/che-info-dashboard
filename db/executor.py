@@ -79,7 +79,12 @@ class QueryExecutor:
             'period_start': period_start,
             'period_end': period_end,
         })
-    
+
+    def get_shift_map(self, check_time, lookback, kind: str = 'cy') -> Optional[list[dict]]:
+        """换班检测+补偿：返回换司机设备的 id/shift_start/comp_20/comp_40（无切换设备不返回）"""
+        sql = queries.SHIFT_DETECT_CY if kind == 'cy' else queries.SHIFT_DETECT_QC
+        return self.execute(sql, {'check_time': check_time, 'lookback': lookback})
+
     def get_ym_info(self) -> Optional[list[dict]]:
         """获取堆场设备信息"""
         return self.execute(queries.YM_INFO, {})

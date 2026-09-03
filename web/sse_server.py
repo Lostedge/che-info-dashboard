@@ -12,6 +12,7 @@ from socketserver import ThreadingMixIn
 from typing import Optional
 from datetime import datetime, date
 import logging
+import base64, hmac
 
 
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
@@ -26,6 +27,7 @@ class SSEHandler(BaseHTTPRequestHandler):
     logger = logging.getLogger(__name__)
     on_client_connect = None
     max_clients: int = 20
+    auth: dict = {}
 
     MIME_TYPES = {
         '.html': 'text/html',
@@ -52,6 +54,10 @@ class SSEHandler(BaseHTTPRequestHandler):
             pass
 
     def do_GET(self):
+        if not self._authenticated():
+            self.logger.warning(f"认证失败: {self.client_address[0]} {self.path}")
+            self._send_unauthorized()
+            return
         try:
             if self.path == '/events':
                 self._handle_sse()
@@ -63,6 +69,33 @@ class SSEHandler(BaseHTTPRequestHandler):
         except Exception as e:
             self.logger.error(f"处理请求时发生错误: {e}")
 
+    def _authenticated(self):
+        """Basic Auth 校验"""
+        cfg = self.__class__.auth or {}
+        if not cfg.get('enabled'):
+            return True
+        expect_user = cfg.get('username', '')
+        expect_pass = cfg.get('password', '')
+        if not expect_pass:
+            return False
+        auth = self.headers.get('Authorization', '')
+        if not auth.startswith('Basic '):
+            return False
+        try:
+            raw = base64.b64decode(auth[6:]).decode('utf-8')
+            user, _, pwd = raw.partition(':')
+        except Exception:
+            return False
+        return (hmac.compare_digest(user, expect_user)
+                and hmac.compare_digest(pwd, expect_pass))
+
+    def _send_unauthorized(self):
+        """发送 401 未授权响应"""
+        self.send_response(401)
+        self.send_header('WWW-Authenticate', 'Basic realm="Dashboard"')
+        self.send_header('Content-Length', '0')
+        self.end_headers()
+    
     def _handle_sse(self):
         if not self._register_client():
             self.send_response(503)
@@ -181,10 +214,11 @@ class SSEHandler(BaseHTTPRequestHandler):
 class SSEServer:
     """SSE 服务器"""
 
-    def __init__(self, host: str, port: int, max_clients: int = 20):
+    def __init__(self, host: str, port: int, max_clients: int = 20, auth: Optional[dict] = None):
         self.host = host
         self.port = port
         self.max_clients = max_clients
+        self.auth = auth or {}
         self.server: Optional[ThreadingHTTPServer] = None
         self.thread: Optional[threading.Thread] = None
         self.logger = logging.getLogger(__name__)
@@ -192,6 +226,7 @@ class SSEServer:
 
     def start(self):
         SSEHandler.max_clients = self.max_clients
+        SSEHandler.auth = self.auth
 
         self.server = ThreadingHTTPServer((self.host, self.port), SSEHandler)
         self.thread = threading.Thread(target=self._run, daemon=True)

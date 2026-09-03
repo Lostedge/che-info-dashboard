@@ -32,8 +32,10 @@ def load_config(base_dir: str) -> dict:
 
         mqtt_config = config.get('mqtt', {})
         oracle_config = config.get('oracle', {})
+        auth_config = config.get('auth', {})
         _resolve_env_vars(mqtt_config, ('username', 'password'))
         _resolve_env_vars(oracle_config, ('user', 'password', 'lib_dir'))
+        _resolve_env_vars(auth_config, ('username', 'password'))
 
         return config
 
@@ -47,9 +49,14 @@ def load_config(base_dir: str) -> dict:
   
 def _resolve_env_vars(section: dict, keys: tuple):
     for key in keys:
-        val = section.get(key, '')
-        if isinstance(val, str) and val.startswith('${'):
-            section[key] = os.getenv(val[2:-1], '')
+        val = section.get(key)
+        if isinstance(val, str) and val.startswith('${') and val.endswith('}'):
+            env_name = val[2:-1]
+            env_val = os.getenv(env_name)
+            if env_val is None:
+                print(f"⚠️ 环境变量 {env_name} 未设置，{key} 将为空")
+                env_val = ''
+            section[key] = env_val
 
 
 def main():
@@ -66,6 +73,7 @@ def main():
         host=sse_cfg.get('host', '0.0.0.0'),
         port=sse_cfg.get('port', 8765),
         max_clients=sse_cfg.get('max_clients', 20),
+        auth=config.get('auth', {}),
     )
 
     # 设置客户端连接回调

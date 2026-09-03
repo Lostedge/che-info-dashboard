@@ -51,6 +51,7 @@ const State = {
   ships: [],
   shipHistory: {},        // { [shipId]: [{ t, iPct, ePct }] }
   shipAliases: {},        // { xx外id: xxid }，ship_info 到达时生成
+  statsMode: 'shift',     // 'day'=当日 / 'shift'=当班（默认当班，由后端 stats_mode 推送更新）
 
   // 船舶进度历史配置
   get CFG() {
@@ -542,6 +543,11 @@ const SSEClient = {
         Charts.update('chart-qc', filterByConfig(State.getByType('1'), 'qc'));
         Charts.syncYAxis();
         Charts.updateSummaries();
+        break;
+
+      case 'stats_mode':
+        State.statsMode = msg.data?.mode || 'shift';
+        Charts.updateTitles();
         break;
     }
   },

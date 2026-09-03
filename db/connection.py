@@ -31,7 +31,7 @@ class DBConnection:
             user=user, password=password, dsn=dsn,
             min=1, max=3, increment=1,
         )
-        logger.info(f"✅ Oracle 连接池已创建: {dsn}")
+        logger.info(f"✅ Oracle 连接池已创建")
 
     def close(self):
         global _pool

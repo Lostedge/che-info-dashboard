@@ -39,7 +39,7 @@ class MQTTClient:
         port = self.config.get('port', 1883)
         keepalive = self.config.get('keepalive', 60)
         
-        self.logger.info(f"正在连接MQTT服务器: {host}:{port}")
+        self.logger.info(f"正在连接MQTT服务器...")
         try:
             self.client.connect(host, port, keepalive)
             self.client.loop_start()
@@ -56,10 +56,7 @@ class MQTTClient:
             qos = self.config.get('qos', 1)
             
             self.client.subscribe(topic, qos)
-            self.logger.info(f"MQTT连接成功，已订阅: {topic}")
-            
-            print(f"成功连接到 {self.config.get('host')}:{self.config.get('port')}")
-            print(f"用户名: {self.config.get('username')}, Client ID: {self.config.get('client_id')}")
+            self.logger.info(f"MQTT连接成功，已订阅: {topic}，Client ID: {self.config.get('client_id')}")
         else:
             self.connected = False
             error_msg = f"MQTT连接失败，错误码: {rc}"
