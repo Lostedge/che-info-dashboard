@@ -181,4 +181,12 @@ const Charts = {
         <span class="cs-item cs-teu"><span class="cs-label">TEU</span><span class="cs-val">${teu}</span></span>`;
     }
   },
+
+  /** 更新标题 当日/当班 前缀 */
+  updateTitles() {
+    const shift = State.statsMode === 'shift';
+    document.querySelectorAll('.chart-title .ct-mode').forEach(el => {
+      el.textContent = shift ? '当班' : '当日';
+    });
+  },
 };

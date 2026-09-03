@@ -51,10 +51,14 @@ oracle:
 # 定时调度配置
 # ===========================================================
 scheduler:
-  delay: 2        # 启动延迟（分钟）
-  intervals:      # 执行间隔（分钟）
-    info:   10    # 
-    stats:  30    # 
+  delay: 2                    # 启动延迟（分钟）
+  intervals:                  # 执行间隔（分钟）
+    info:   10
+    stats:  30
+  stats_mode: "shift"         # 作业统计模式: "day"=当日(零点起) / "shift"=当班(换班起点)
+  shift:                      # 当班统计：换班检测（stats_mode="shift" 时生效）
+    check_time: "07:30"       # 当班起点 / 换班检测点（HH:MM）；每日检测在 check_time + scheduler.delay 后执行
+    window_minutes: 30        # 检测窗口 = 交接带 [check_time-window_minutes, check_time)；默认 7:00-7:30
   test:
     enabled: false
     test_datetime: "2024-07-29 23:30:00"

@@ -88,3 +88,64 @@ SHIP_INFO = """
             AND p.ETA >= SYSDATE
             AND p.ETA <  SYSDATE + INTERVAL '1' DAY))
 """
+
+
+# ============================================================
+# 当班统计：换班检测
+# ============================================================
+
+# 堆场设备换班检测+补偿：返回换司机设备的 id/当班起点，及 [换班点, 检测点) 的 20/40 补偿量
+SHIFT_DETECT_CY = """
+    SELECT SUBSTR(CY_MACH_NO, -3)                                AS id,
+           MAX(shift_start)                                      AS shift_start,
+           COUNT(CASE WHEN CNTR_SIZ_COD = '20' THEN 1 END)       AS comp_20,
+           COUNT(CASE WHEN CNTR_SIZ_COD = '40' THEN 1 END)       AS comp_40
+    FROM (
+        SELECT CY_MACH_NO, CNTR_SIZ_COD, WORK_TIM,
+               MAX(CASE WHEN is_switch = 1 THEN WORK_TIM END)
+                   OVER (PARTITION BY CY_MACH_NO)                AS shift_start
+        FROM (
+            SELECT CY_MACH_NO, CNTR_SIZ_COD, WORK_TIM,
+                   CASE WHEN prev_nam IS NOT NULL AND prev_nam <> REPLACE_NAM
+                        THEN 1 ELSE 0 END                        AS is_switch
+            FROM (
+                SELECT CY_MACH_NO, CNTR_SIZ_COD, WORK_TIM, REPLACE_NAM,
+                       LAG(REPLACE_NAM) OVER (PARTITION BY CY_MACH_NO ORDER BY WORK_TIM) AS prev_nam
+                FROM JZCT_TOS_HIS.CY_COMMAND
+                WHERE WORK_TIM >= :lookback
+                  AND WORK_TIM <  :check_time
+                  AND CY_MACH_NO IS NOT NULL
+            )
+        )
+    )
+    WHERE WORK_TIM >= shift_start
+    GROUP BY SUBSTR(CY_MACH_NO, -3)
+"""
+
+# 岸桥换班检测+补偿
+SHIFT_DETECT_QC = """
+    SELECT SUBSTR(SHIP_MACH_NO, -3)                              AS id,
+           MAX(shift_start)                                      AS shift_start,
+           COUNT(CASE WHEN CNTR_SIZ_COD = '20' THEN 1 END)       AS comp_20,
+           COUNT(CASE WHEN CNTR_SIZ_COD = '40' THEN 1 END)       AS comp_40
+    FROM (
+        SELECT SHIP_MACH_NO, CNTR_SIZ_COD, WORK_TIM,
+               MAX(CASE WHEN is_switch = 1 THEN WORK_TIM END)
+                   OVER (PARTITION BY SHIP_MACH_NO)              AS shift_start
+        FROM (
+            SELECT SHIP_MACH_NO, CNTR_SIZ_COD, WORK_TIM,
+                   CASE WHEN prev_nam IS NOT NULL AND prev_nam <> SHIP_MACH_DRIVER
+                        THEN 1 ELSE 0 END                        AS is_switch
+            FROM (
+                SELECT SHIP_MACH_NO, CNTR_SIZ_COD, WORK_TIM, SHIP_MACH_DRIVER,
+                       LAG(SHIP_MACH_DRIVER) OVER (PARTITION BY SHIP_MACH_NO ORDER BY WORK_TIM) AS prev_nam
+                FROM JZCT_TOS_HIS.SHIP_COMMAND
+                WHERE WORK_TIM >= :lookback
+                  AND WORK_TIM <  :check_time
+                  AND SHIP_MACH_NO IS NOT NULL
+            )
+        )
+    )
+    WHERE WORK_TIM >= shift_start
+    GROUP BY SUBSTR(SHIP_MACH_NO, -3)
+"""

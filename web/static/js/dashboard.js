@@ -46,6 +46,7 @@ function filterByConfig(devices, type) {
 const State = {
   devices: {},
   ships: [],
+  statsMode: 'shift',   // 'day'=当日 / 'shift'=当班（默认当班，由后端 stats_mode 推送更新）
 
   merge(list) {
     for (const d of list || []) {
@@ -338,6 +339,11 @@ const SSEClient = {
         Charts.update('chart-qc', filterByConfig(State.getByType('1'), 'qc'));
         Charts.syncYAxis();
         Charts.updateSummaries();
+        break;
+
+      case 'stats_mode':
+        State.statsMode = msg.data?.mode || 'shift';
+        Charts.updateTitles();
         break;
     }
   },
