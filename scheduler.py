@@ -27,6 +27,8 @@ class Scheduler:
 
         # 统计模式
         self.stats_mode = config.get('stats_mode', 'shift')
+        # 缓存统计模式，客户端连接时推送
+        self._cache['stats_mode'] = {'mode': self.stats_mode}
         shift_cfg = config.get('shift', {})
         self.shift_comp: dict = {'ym': {}, 'qc': {}}   # {kind: {id: {'c20': n, 'c40': n}}}
         self.shift_check_time = None
