@@ -47,9 +47,14 @@ def load_config(base_dir: str) -> dict:
   
 def _resolve_env_vars(section: dict, keys: tuple):
     for key in keys:
-        val = section.get(key, '')
-        if isinstance(val, str) and val.startswith('${'):
-            section[key] = os.getenv(val[2:-1], '')
+        val = section.get(key)
+        if isinstance(val, str) and val.startswith('${') and val.endswith('}'):
+            env_name = val[2:-1]
+            env_val = os.getenv(env_name)
+            if env_val is None:
+                print(f"⚠️ 环境变量 {env_name} 未设置，{key} 将为空")
+                env_val = ''
+            section[key] = env_val
 
 
 def main():
