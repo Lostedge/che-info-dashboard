@@ -32,8 +32,10 @@ def load_config(base_dir: str) -> dict:
 
         mqtt_config = config.get('mqtt', {})
         oracle_config = config.get('oracle', {})
+        auth_config = config.get('auth', {})
         _resolve_env_vars(mqtt_config, ('username', 'password'))
         _resolve_env_vars(oracle_config, ('user', 'password', 'lib_dir'))
+        _resolve_env_vars(auth_config, ('username', 'password'))
 
         return config
 
@@ -71,6 +73,7 @@ def main():
         host=sse_cfg.get('host', '0.0.0.0'),
         port=sse_cfg.get('port', 8765),
         max_clients=sse_cfg.get('max_clients', 20),
+        auth=config.get('auth', {}),
     )
 
     # 设置客户端连接回调
