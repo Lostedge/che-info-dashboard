@@ -14,7 +14,7 @@ mqtt:
 # 消息处理配置
 # ===========================================================
 message:
-  expire_interval: 30  # 消息过期时间（秒）
+  expire_interval: 60  # 消息过期时间（秒）
 
 # ===========================================================
 # 状态检测配置
@@ -48,9 +48,9 @@ auth:
 # Oracle 数据库配置
 # ===========================================================
 oracle:
-  host: "192.168.100.110"
-  port: 1521
-  service_name: "orcl"
+  host: ${ORACLE_HOST}
+  port: ${ORACLE_PORT}
+  service_name: ${ORACLE_SERVICE_NAME}
   user: ${ORACLE_USER}
   password: ${ORACLE_PASSWORD}
   lib_dir: ${ORACLE_LIB_DIR}

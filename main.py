@@ -34,7 +34,7 @@ def load_config(base_dir: str) -> dict:
         oracle_config = config.get('oracle', {})
         auth_config = config.get('auth', {})
         _resolve_env_vars(mqtt_config, ('username', 'password'))
-        _resolve_env_vars(oracle_config, ('user', 'password', 'lib_dir'))
+        _resolve_env_vars(oracle_config, ('host', 'port', 'service_name', 'user', 'password', 'lib_dir'))
         _resolve_env_vars(auth_config, ('username', 'password'))
 
         return config
