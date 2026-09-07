@@ -21,6 +21,7 @@
   --c-text:     #e6edf3;
   --c-soft:     #b0b8c0;
   --c-dim:      #8b949e;
+  --c-track:    #484f58;     /* #6e7681 */
   --c-muted:    #484f58;
 
   /* 语义色 */
@@ -521,7 +522,7 @@ main {
   width: 100%;
   height: 4px;
   border-radius: 2px;
-  background: var(--c-border);
+  background: var(--c-track);
   overflow: hidden;
 }
 
