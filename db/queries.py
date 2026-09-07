@@ -41,13 +41,17 @@ QC_STATS = """
     ORDER BY SHIP_MACH_NO
 """
 
-# 堆场设备信息（RTG、FL）
+# 堆场设备信息（RTG、FL；FL 附位置 area/bay）
 YM_INFO = """
     SELECT
         SUBSTR(p.MACH_NO, -3)                       AS id,
         p.CURRENT_ID                                AS status,
         COALESCE(o.OPER_NAM, p.MACH_OPER_COD)       AS driver,
-        p.WORK_WAY                                  AS work_way
+        p.WORK_WAY                                  AS work_way,
+        CASE WHEN p.MACH_NO LIKE 'DGJ%' 
+             THEN p.CUR_CY_AREA_NO END              AS area,
+        CASE WHEN p.MACH_NO LIKE 'DGJ%' 
+             THEN p.CUR_CY_BAY_NO  END              AS bay
     FROM JZCT_TOS.CY_MACH_PLAC p
     LEFT JOIN JZCT_CODE.C_OPERATOR o ON p.MACH_OPER_COD = o.OPER_COD
     WHERE p.MACH_NO LIKE 'CQ%'
