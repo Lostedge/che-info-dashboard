@@ -27,14 +27,18 @@ class Scheduler:
 
         # 统计模式
         self.stats_mode = config.get('stats_mode', 'shift')
-        # 缓存统计模式，客户端连接时推送
         self._cache['stats_mode'] = {'mode': self.stats_mode}
         shift_cfg = config.get('shift', {})
         self.shift_comp: dict = {'ym': {}, 'qc': {}}   # {kind: {id: {'c20': n, 'c40': n}}}
+        # 换班检测点处理
         self.shift_check_time = None
-        self.shift_check_time_str = shift_cfg.get('check_time', '07:30')
+        raw = shift_cfg.get('check_times') or shift_cfg.get('check_time', '07:30')
+        if isinstance(raw, str):
+            raw = [raw]
+        self.shift_times = [tuple(map(int, s.split(':'))) for s in raw] 
         self.shift_window_minutes = shift_cfg.get('window_minutes', 30)
 
+        # 测试模式
         test_cfg = config.get('test', {})
         self.test_datetime = None
         if test_cfg.get('enabled') and test_cfg.get('test_datetime'):
@@ -59,27 +63,30 @@ class Scheduler:
             name=f'作业统计（每{self.intervals["stats"]}分钟）',
         )
         if self.stats_mode == 'shift':
-            ch, cm = map(int, self.shift_check_time_str.split(':'))
-            job_hh, job_mm = divmod(ch * 60 + cm + self.delay, 60)
-            self._scheduler.add_job(
-                self._refresh_shift_comp,
-                CronTrigger(hour=job_hh, minute=job_mm),
-                id='refresh_shift',
-                name='刷新换班补偿',
-            )
+            for h, m in self.shift_times:
+                hh, mm = divmod(h * 60 + m + 1, 60)
+                self._scheduler.add_job(
+                    self._refresh_shift_comp,
+                    CronTrigger(hour=hh, minute=mm),
+                    id=f'refresh_shift_{h:02d}{m:02d}',
+                    name=f'刷新换班补偿（{h:02d}:{m:02d}）',
+                )
         self._scheduler.start()
 
         self.logger.info(f"✅ 定时调度器已启动: {self.intervals['info']}/{self.intervals['stats']}+{self.delay}min")
 
-    def _refresh_shift_comp(self):
-        """每日换班检测：缓存换司机设备在 [换班点, 检测点) 的作业补偿量"""
-        now = self.test_datetime or datetime.now()
-        hh, mm = map(int, self.shift_check_time_str.split(':'))
-        check_time = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
-        if now < check_time:
-            check_time -= timedelta(days=1)      # 指向最近一次已发生的检测点
-        lookback = check_time - timedelta(minutes=self.shift_window_minutes)
+    def _nearest_shift_time(self, now):
+        """最近一次已发生的班起点"""
+        today = [now.replace(hour=h, minute=m, second=0, microsecond=0)
+                 for h, m in self.shift_times]
+        past = [p for p in today if p <= now]
+        return max(past) if past else max(today) - timedelta(days=1)
 
+    def _refresh_shift_comp(self):
+        """按最近一次已发生的班起点刷新补偿"""
+        now = self.test_datetime or datetime.now()
+        check_time = self._nearest_shift_time(now)
+        lookback = check_time - timedelta(minutes=self.shift_window_minutes)
         try:
             executor = QueryExecutor()
             comp = {'ym': {}, 'qc': {}}
@@ -93,8 +100,7 @@ class Scheduler:
             self.shift_check_time = check_time
             total = sum(len(v) for v in comp.values())
             self.logger.info(
-                f"✅ 换班补偿已刷新: {total} 台设备，"
-                f"检测点 {check_time:%Y-%m-%d %H:%M:%S}"
+                f"换班补偿已刷新: {check_time:%H:%M} {total} 台设备"
             )
         except Exception as e:
             self.logger.error(f"换班补偿刷新失败: {e}")
