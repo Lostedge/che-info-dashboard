@@ -64,7 +64,7 @@ class Scheduler:
         )
         if self.stats_mode == 'shift':
             for h, m in self.shift_times:
-                hh, mm = divmod(h * 60 + m + self.delay, 60)
+                hh, mm = divmod(h * 60 + m + 1, 60)
                 self._scheduler.add_job(
                     self._refresh_shift_comp,
                     CronTrigger(hour=hh, minute=mm),
