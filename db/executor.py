@@ -33,7 +33,10 @@ class QueryExecutor:
                 with conn.cursor() as cur:
                     cur.execute(sql, params)
                     columns = [col[0].lower() for col in cur.description]
-                    rows = [dict(zip(columns, row)) for row in cur.fetchall()]
+                    rows = [
+                        {k: v for k, v in zip(columns, row) if v is not None}
+                        for row in cur.fetchall()
+                    ]
                 return rows
 
             except oracledb.DatabaseError as e:
