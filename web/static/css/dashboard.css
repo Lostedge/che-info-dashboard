@@ -21,6 +21,7 @@
   --c-text:     #e6edf3;
   --c-soft:     #b0b8c0;
   --c-dim:      #8b949e;
+  --c-track:    #484f58;     /* #6e7681 */
   --c-muted:    #484f58;
 
   /* 语义色 */
@@ -33,6 +34,8 @@
   --ship-work:  #238636;
   --ship-berth: #9e6a03;
   --ship-wait:  #1f6feb;
+  --ship-i:     #60a5fa;
+  --ship-e:     #34d399;
 
   /* 图表色 */
   --chart-20:   #60a5fa;
@@ -383,15 +386,16 @@ main {
 /* 船舶面板 */
 .ship-panel {
   flex-shrink: 0;
-  height: 8rem;
+  height: 9rem;
   display: flex;
   flex-direction: row;
   align-items: stretch;
   gap: 1rem;
-  padding: 1rem;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
   overflow: hidden;
-  /* background: var(--c-surface2);
-  border: 1px solid var(--c-muted); */
 }
 
 /* 单艘船舶卡片 */
@@ -453,15 +457,116 @@ main {
 .ship-card .sc-voyage {
   font-size: 1.3rem;
   color: var(--c-dim);
-  margin-left: 0.5rem;
+}
+
+.ship-card .sc-berth {
+  width: 3.3rem;
+  font-size: 1.4rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--c-soft);
 }
 
 .ship-card .sc-time {
+  flex-shrink: 0;
   font-size: 1.15rem;
   font-weight: 500;
   color: var(--c-text);
   margin-left: 0.1rem;
 }
+
+/* 信息区 */
+.sc-info {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  min-width: 0;
+}
+
+/* 作业进度 */
+.sc-progress {
+  width: 12rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding-left: 0.2rem;
+  gap: 0.3rem;
+  line-height: 1.25;
+  font-size: 1.3rem;
+  color: var(--c-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.scp-row {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.scp-line {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  column-gap: 0.6rem;
+  align-items: baseline;
+  white-space: nowrap;
+}
+
+.scp-label { color: var(--c-soft); }
+.scp-num b { color: var(--c-text); font-weight: 700; }
+.scp-pct   { text-align: right; color: var(--c-soft); }
+
+/* 进度条 */
+.bar {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--c-track);
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.6s ease;
+}
+
+.bar-i { background: var(--ship-i); }
+.bar-e { background: var(--ship-e); }
+
+/* 进度和折线图容器 */
+.sc-progress-wrap {
+  display: flex;
+  align-items: stretch;
+  max-height: 4.75rem;
+  gap: 2rem;
+}
+
+.sc-progress-wrap--idle { 
+  height: 4.75rem;
+  width: 100%;
+}
+
+/* 折线图 */
+.sc-spark {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 3rem;
+  display: block;
+}
+
+.sc-spark polyline {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.spk-i { stroke: var(--ship-i); }
+.spk-e { stroke: var(--ship-e); }
 
 .ship-placeholder {
   display: flex;
@@ -470,6 +575,8 @@ main {
   width: 100%;
   font-size: 1.3rem;
   color: var(--c-dim);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .chart-panel {

@@ -14,6 +14,9 @@ function escapeHtml(str) {
   })[c]);
 }
 
+/** done/plan → 0-100 百分比 */
+const toPct = (done, plan) => (plan ? Math.min(100, Math.round((done / plan) * 100)) : 0);
+
 
 /* ============================================================
    Config - 处理静态配置文件（web/static/config.json）
@@ -46,7 +49,47 @@ function filterByConfig(devices, type) {
 const State = {
   devices: {},
   ships: [],
-  statsMode: 'shift',   // 'day'=当日 / 'shift'=当班（默认当班，由后端 stats_mode 推送更新）
+  shipHistory: {},        // { [shipId]: [{ t, iPct, ePct }] }
+  shipAliases: {},        // { xx外id: xxid }，ship_info 到达时生成
+  statsMode: 'shift',     // 'day'=当日 / 'shift'=当班（默认当班，由后端 stats_mode 推送更新）
+
+  // 船舶进度历史配置
+  get CFG() {
+    return Config.data?.ship_history ?? {};
+  },
+
+  _initHistory() {
+    try { this.shipHistory = JSON.parse(localStorage.getItem('shipHistory')) || {}; }
+    catch { this.shipHistory = {}; }
+  },
+
+  _saveHistory() {
+    const cutoff = Date.now() - this.CFG.ttlHours * 3600 * 1000;
+    for (const [id, h] of Object.entries(this.shipHistory)) {
+      const last = h[h.length - 1];
+      if (!last || last.t < cutoff) { delete this.shipHistory[id]; continue; }
+      if (h.length > this.CFG.maxPoints) h.splice(0, h.length - this.CFG.maxPoints);
+    }
+    const ids = Object.keys(this.shipHistory)
+      .sort((a, b) => {
+        const ha = this.shipHistory[a], hb = this.shipHistory[b];
+        return ha[ha.length - 1].t - hb[hb.length - 1].t;
+      });
+    for (const id of ids.slice(0, Math.max(0, ids.length - this.CFG.maxShips))) delete this.shipHistory[id];
+    try {
+      localStorage.setItem('shipHistory', JSON.stringify(this.shipHistory));
+    } catch (e) { /* localStorage 满/被禁用时不致命，忽略 */ }
+  },
+
+  /** 取船舶进度历史的渲染采样：间隔取点 + 最多 renderPoints 个 */
+  renderHistory(id) {
+    const h = this.shipHistory[id];
+    if (!h || h.length < 2) return [];
+    const { renderInterval, renderPoints } = this.CFG;
+    const out = [];
+    for (let i = 0; i < h.length; i += renderInterval) out.push(h[i]);
+    return out.slice(-renderPoints);
+  },
 
   merge(list) {
     for (const d of list || []) {
@@ -66,6 +109,75 @@ const State = {
   /** 统计在线设备数 */
   countOnline(list) {
     return list.filter(d => d.status === '1').length;
+  },
+
+  /** 合并船舶作业进度 */
+  mergeShipProgress(list) {
+    const map = new Map((this.ships || []).map(s => [s.id, s]));
+    for (const p of list || []) {
+      const ship = map.get(p.id);
+      if (ship) Object.assign(ship, p);
+    }
+  },
+
+  /** 记录船舶进度历史 */
+  pushShipHistory(list) {
+    const now = Date.now();
+    for (const p of list || []) {
+      if (p.id == null) continue;
+      if (!(Number(p.i_plan_num) || 0) && !(Number(p.e_plan_num) || 0)) continue;
+      const h = (this.shipHistory[p.id] ||= []);
+      h.push({
+        t: now,
+        iPct: toPct(p.i_done_num ?? 0, p.i_plan_num ?? 0),
+        ePct: toPct(p.e_done_num ?? 0, p.e_plan_num ?? 0),
+      });
+    }
+    this._saveHistory();
+  },
+
+  /** 合并外贸船 */
+  _shipName(s)       { return (s.ship_name || '').trim(); },
+  _isForecast(s)     { return !s.beg_work_tim && !s.rtb; },
+  _foreignBase(name) { return name.endsWith('外') ? name.slice(0, -1) : null; },
+
+  buildShipAliases(list) {
+    const aliases = {};
+    if (Config.data?.merge_foreign_ships === false) return aliases;
+    const byName = new Map();
+    for (const s of list) {
+      const n = this._shipName(s);
+      if (!n) continue;
+      const cur = byName.get(n);
+      if (!cur || (this._isForecast(cur) && !this._isForecast(s))) byName.set(n, s);
+    }
+    for (const s of list) {
+      const base = this._foreignBase(this._shipName(s));
+      if (base && byName.has(base)) aliases[s.id] = byName.get(base).id;
+    }
+    return aliases;
+  },
+  
+  mergeForeignShips(list) {
+    this.shipAliases = this.buildShipAliases(list);
+    return list.filter(s => !this.shipAliases[s.id]);
+  },
+
+  mergeForeignProgress(list) {
+    const aliases = this.shipAliases || {};
+    const byId = new Map(list.map(p => [p.id, p]));
+    const FIELDS = ['i_plan_num', 'i_done_num', 'i_queue_num',
+                    'e_plan_num', 'e_done_num', 'e_queue_num'];
+    const keep = [];
+    for (const p of list) {
+      const target = byId.get(aliases[p.id]);
+      if (target) {
+        for (const f of FIELDS) target[f] = (target[f] || 0) + (p[f] || 0);
+        continue;
+      }
+      keep.push(p);
+    }
+    return keep;
   },
 };
 
@@ -107,6 +219,7 @@ const Header = {
 
 const Ships = {
   MAX_SHIPS: 4,
+  BERTH_LABELS: { '207B': '207', '208B': '208' },
 
   init() {
     this.el = document.getElementById('ship-info');
@@ -129,18 +242,50 @@ const Ships = {
     }
 
     const cards = topN.map(s => {
-      const st = s._st;
       const esc = escapeHtml;
+      const st = s._st;
+      const p = this._progress(s);
       const name   = s.ship_name || s.id || '--';
       const voyage = s.voyage || '';
+      const berth  = this._berthLabel(s.berth);
       const title  = `${name} ${voyage}`.trim(); 
 
+      const progress = (p.iPlan > 0 || p.ePlan > 0)
+        ? `<div class="sc-progress">
+             <div class="scp-row">
+               <div class="scp-line">
+                 <span class="scp-label">卸</span>
+                 <span class="scp-num"><b>${p.iDone}</b>/${p.iPlan}</span>
+                 <span class="scp-pct">${this._pct(p.iDone, p.iPlan)}</span>
+               </div>
+               <div class="bar"><div class="bar-fill bar-i" data-pct="${toPct(p.iDone, p.iPlan)}"></div></div>
+             </div>
+             <div class="scp-row">
+               <div class="scp-line">
+                 <span class="scp-label">装</span>
+                 <span class="scp-num"><b>${p.eDone}</b>/${p.ePlan}</span>
+                 <span class="scp-pct">${this._pct(p.eDone, p.ePlan)}</span>
+               </div>
+               <div class="bar"><div class="bar-fill bar-e" data-pct="${toPct(p.eDone, p.ePlan)}"></div></div>
+             </div>
+           </div>`
+        : '';
+
+      const spark = this._sparkline(s);
+      const progressBlock = (progress || spark)
+        ? `<div class="sc-progress-wrap">${progress}${spark}</div>`
+        : '<div class="sc-progress-wrap--idle"></div>';
+
       return `<div class="ship-card state-${st.state}" title="${esc(title)}">
-        <span class="sc-name">
-          <span class="sc-ship">${esc(name)}</span>
-          <span class="sc-voyage">${esc(voyage)}</span>
-        </span>
-        <span class="sc-time">${st.label} ${st.time}</span>
+        <div class="sc-info">
+          <span class="sc-name">
+            <span class="sc-ship">${esc(name)}</span>
+            <span class="sc-voyage">${esc(voyage)}</span>
+          </span>
+          ${berth ? `<span class="sc-berth">${esc(berth)}</span>` : ''}
+          <span class="sc-time">${st.label}${st.time}</span>
+        </div>
+        ${progressBlock}
       </div>`;
     }).join('');
 
@@ -148,6 +293,10 @@ const Ships = {
       .fill('<div class="ship-card ship-card--empty"></div>').join('');
 
     this.el.innerHTML = cards + empty;
+
+    this.el.querySelectorAll('.bar-fill').forEach(el => {
+      el.style.width = `${el.dataset.pct}%`;
+    });
   },
 
   /** 排序船舶 */
@@ -167,15 +316,62 @@ const Ships = {
     return String(s.beg_work_tim || s.rtb || s.eta || '');
   },
 
+  // 泊位映射
+  _berthLabel(berth) {
+    if (!berth) return '';
+    return this.BERTH_LABELS[berth] || '二期';
+  },
+
+  /** 作业进度 */
+  _progress(s) {
+    return {
+      iDone: Number(s.i_done_num) || 0,
+      iPlan: Number(s.i_plan_num) || 0,
+      eDone: Number(s.e_done_num) || 0,
+      ePlan: Number(s.e_plan_num) || 0,
+    };
+  },
+
+  /** 进度百分比字符串 */
+  _pct(done, plan) {
+    if (!plan) return '--';
+    return `${toPct(done, plan)}%`;
+  },
+
+  /** 进度历史 SVG 折线图 */
+  _sparkline(s) {
+    const h = State.renderHistory(s.id);
+    if (h.length < 2) return '';
+    const W = 96, H = 30, P = 2;
+    const iw = W - P * 2, ih = H - P * 2;
+    const x = i => P + (i / (h.length - 1)) * iw;
+    const y = v => P + ih - (v / 100) * ih;
+    const pts = k => h.map((p, i) => `${x(i).toFixed(1)},${y(p[k]).toFixed(1)}`).join(' ');
+    return `<svg class="sc-spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+      <polyline class="spk-i" vector-effect="non-scaling-stroke" points="${pts('iPct')}"></polyline>
+      <polyline class="spk-e" vector-effect="non-scaling-stroke" points="${pts('ePct')}"></polyline>
+    </svg>`;
+  },
+
+  /** 拆分 ship_label: "船名 进口/出口" → { name, voyage } */
+  _splitLabel(label) {
+    const idx = label.lastIndexOf(' ');
+    if (idx === -1) return { name: label, voyage: '' };
+    return {
+      name:   label.substring(0, idx),
+      voyage: label.substring(idx + 1),
+    };
+  },
+
   /** 判定船舶状态 */
   _shipState(s) {
     if (s.beg_work_tim) {
-      return { state: 'work', label: '开工时间：', time: this._fmt(s.beg_work_tim) };
+      return { state: 'work', label: '开工：', time: this._fmt(s.beg_work_tim) };
     }
     if (s.rtb) {
-      return { state: 'berth', label: '靠泊时间：', time: this._fmt(s.rtb) };
+      return { state: 'berth', label: '靠泊：', time: this._fmt(s.rtb) };
     }
-    return { state: 'wait', label: '预计抵港：', time: this._fmt(s.eta) };
+    return { state: 'wait', label: '预计：', time: this._fmt(s.eta) };
   },
 
   _fmt(raw) {
@@ -322,9 +518,17 @@ const SSEClient = {
         break;
 
       case 'ship_info':
-        State.ships = data;
-        Ships.render(data);
+        State.ships = State.mergeForeignShips(data);
+        Ships.render();
         break;
+
+      case 'ship_progress': {
+        const merged = State.mergeForeignProgress(data);
+        State.mergeShipProgress(merged);
+        if (!msg.init) State.pushShipHistory(merged);
+        Ships.render();
+        break;
+      }
 
       case 'ym_stats':
         State.merge(data);
@@ -358,6 +562,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   Header.init();
   Ships.init();
   Charts.init();
+  State._initHistory();
   await Config.load();
   SSEClient.init();
 });

@@ -93,7 +93,7 @@ def main():
         # 推送 DB 缓存数据
         for push_type, data in scheduler.get_cached_data().items():
             if data:
-                sse_server.push({'type': push_type, 'data': data})
+                sse_server.push({'type': push_type, 'data': data, 'init': True})
 
     SSEHandler.on_client_connect = on_connect
 
