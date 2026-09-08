@@ -317,6 +317,10 @@ main {
   flex: 1.2;
 }
 
+.card-rtg .c-loc { 
+  color: var(--c-text);
+}
+
 /* 作业方式颜色 */
 .card .c-way-SI { color: var(--chart-20-text); }
 .card .c-way-SO { color: var(--chart-40-text); }
@@ -334,6 +338,7 @@ main {
 .card.fault .c-ship   { color: var(--c-dim); }
 .card.fault .c-way    { color: var(--c-dim); }
 .card.fault .c-loc    { color: var(--c-dim); }
+.card-rtg.fault .c-loc { display: block; color: var(--c-dim); }
 
 /* 占位文本 */
 .card-placeholder {
