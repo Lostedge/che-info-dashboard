@@ -48,6 +48,7 @@ auth:
 # Oracle 数据库配置
 # ===========================================================
 oracle:
+  mode: "thin"                # 数据库连接模式: "thin" / "thick"
   host: ${ORACLE_HOST}
   port: ${ORACLE_PORT}
   service_name: ${ORACLE_SERVICE_NAME}
