@@ -17,8 +17,13 @@ class DBConnection:
     def __init__(self, config: dict):
         global _pool
 
-        oracledb.init_oracle_client(lib_dir=config.get('lib_dir'))
-        logger.info("Thick 模式已初始化")
+        mode = str(config.get('mode', 'thin')).lower()
+        if mode == 'thick':
+            lib_dir = config.get('lib_dir')
+            if not lib_dir:
+                raise ValueError("Thick 模式需配置 oracle.lib_dir")
+            oracledb.init_oracle_client(lib_dir=lib_dir)
+            logger.info("Thick 模式已初始化")
 
         user = config['user']
         password = config['password']
