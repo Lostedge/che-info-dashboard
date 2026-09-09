@@ -180,7 +180,7 @@ class Scheduler:
         prog = self._try_query('PROG', executor.get_ship_progress, working_voyages)
         if prog is None:
             return
-        self._push('PROG', 'ship_progress', self._merge_progress(prog))
+        self._push('PROG', 'ship_progress', self._guard_progress(prog))
 
     def _try_query(self, label, fetcher, *args):
         """执行查询，失败返回 None"""
@@ -199,14 +199,16 @@ class Scheduler:
         self._cache[push_type] = data
         self.logger.info(f"{label}: {len(data)}")
 
-    def _merge_progress(self, data: list):
-        """作业完成后视图移除行导致归零，用历史缓存兜底（只增不减）"""
+    def _guard_progress(self, data: list):
+        """作业完成后视图移除行导致归零，补回前次缓存的值"""
         old = {p['id']: p for p in self._cache.get('ship_progress', [])}
         for p in data:
             o = old.get(p['id'])
-            if o:
-                for f in ('i_plan_num', 'i_done_num', 'e_plan_num', 'e_done_num'):
-                    p[f] = max(p.get(f, 0), o.get(f, 0))
+            if not o:
+                continue
+            for f in ('i_plan_num', 'i_done_num', 'e_plan_num', 'e_done_num'):
+                if not p.get(f):
+                    p[f] = o.get(f, 0)
         return data
 
     def _get_period_bounds(self, interval_minutes: int, now: datetime) -> tuple:
