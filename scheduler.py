@@ -25,11 +25,14 @@ class Scheduler:
         self._scheduler = BackgroundScheduler()
         self._cache: dict[str, list] = {}
 
+        # 船舶作业进度历史
+        self._ship_history: dict[str, list[dict]] = {}      # {voyage_id: [{'t': epoch_ms, 'i_done': n, 'e_done': n}]}
+
         # 统计模式
         self.stats_mode = config.get('stats_mode', 'shift')
         self._cache['stats_mode'] = {'mode': self.stats_mode}
         shift_cfg = config.get('shift', {})
-        self.shift_comp: dict = {'ym': {}, 'qc': {}}   # {kind: {id: {'c20': n, 'c40': n}}}
+        self.shift_comp: dict = {'ym': {}, 'qc': {}}        # {kind: {id: {'c20': n, 'c40': n}}}
         # 换班检测点处理
         self.shift_check_time = None
         raw = shift_cfg.get('check_times') or shift_cfg.get('check_time', '07:30')
@@ -169,6 +172,7 @@ class Scheduler:
 
     def _fetch_ship(self, executor):
         """获取并推送船舶信息与作业进度"""
+        now = datetime.now()
         ships = self._try_query('SHIP', executor.get_ship_info)
         if ships is None:
             return
@@ -180,7 +184,9 @@ class Scheduler:
         prog = self._try_query('PROG', executor.get_ship_progress, working_voyages)
         if prog is None:
             return
-        self._push('PROG', 'ship_progress', self._guard_progress(prog))
+        processed = self._guard_progress(prog)
+        self._record_ship_history(now, processed)
+        self._push('PROG', 'ship_progress', processed)
 
     def _try_query(self, label, fetcher, *args):
         """执行查询，失败返回 None"""
@@ -210,6 +216,27 @@ class Scheduler:
                 if not p.get(f):
                     p[f] = o.get(f, 0)
         return data
+
+    def _record_ship_history(self, now: datetime, rows: list):
+        """记录船舶作业进度历史"""
+        for r in rows:
+            vid = r.get('id')
+            if not vid:
+                continue
+            pts = self._ship_history.setdefault(vid, [])
+            t = int(now.timestamp() * 1000)
+            if pts and pts[-1]['t'] == t:
+                continue
+            pts.append({
+                't': t,
+                'i_done': int(r.get('i_done_num') or 0),
+                'e_done': int(r.get('e_done_num') or 0),
+            })
+
+    def get_ship_history(self, voyage_id: str) -> dict:
+        """返回指定船舶的作业进度历史"""
+        vid = str(voyage_id)
+        return {'id': vid, 'points': list(self._ship_history.get(vid, []))}
 
     def _get_period_bounds(self, interval_minutes: int, now: datetime) -> tuple:
         """返回对齐到 interval 边界的时间窗口"""
