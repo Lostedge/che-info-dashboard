@@ -102,10 +102,7 @@ class SSEHandler(BaseHTTPRequestHandler):
     
     def _handle_sse(self):
         if not self._register_client():
-            self.send_response(503)
-            self.send_header('Content-Type', 'text/plain; charset=utf-8')
-            self.end_headers()
-            self.wfile.write(b'Too many SSE connections')
+            self._send_bytes(503, 'text/plain; charset=utf-8', b'Too many SSE connections')
             return
 
         try:
@@ -167,11 +164,7 @@ class SSEHandler(BaseHTTPRequestHandler):
         try:
             with open(file_path, 'rb') as f:
                 content = f.read()
-            self.send_response(200)
-            self.send_header('Content-Type', content_type)
-            self._send_security_headers()
-            self.end_headers()
-            self.wfile.write(content)
+            self._send_bytes(200, content_type, content)
         except OSError:
             self.send_error(404)
 
@@ -192,12 +185,7 @@ class SSEHandler(BaseHTTPRequestHandler):
                 data = {'id': voyage, 'points': []}
             status, body = 200, json.dumps(data, ensure_ascii=False).encode('utf-8')
 
-        self.send_response(status)
-        self.send_header('Content-Type', 'application/json; charset=utf-8')
-        self.send_header('Content-Length', str(len(body)))
-        self._send_security_headers()
-        self.end_headers()
-        self.wfile.write(body)
+        self._send_bytes(status, 'application/json; charset=utf-8', body)
 
     def _get_static_dir(self):
         if getattr(sys, 'frozen', False):
@@ -206,6 +194,15 @@ class SSEHandler(BaseHTTPRequestHandler):
             current_dir = os.path.dirname(os.path.abspath(__file__))
             base_dir = os.path.dirname(current_dir)
         return os.path.realpath(os.path.join(base_dir, 'web', 'static'))
+
+    def _send_bytes(self, status: int, content_type: str, body: bytes):
+        """写回响应：状态 + 类型 + 长度 + 安全头"""
+        self.send_response(status)
+        self.send_header('Content-Type', content_type)
+        self.send_header('Content-Length', str(len(body)))
+        self._send_security_headers()
+        self.end_headers()
+        self.wfile.write(body)
 
     def _send_security_headers(self):
         self.send_header('Content-Security-Policy',
