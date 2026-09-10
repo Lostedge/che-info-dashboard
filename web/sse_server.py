@@ -13,7 +13,7 @@ from typing import Optional
 from datetime import datetime, date
 import logging
 import base64, hmac
-
+from urllib.parse import urlparse, parse_qs
 
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
     daemon_threads = True
@@ -26,6 +26,7 @@ class SSEHandler(BaseHTTPRequestHandler):
     lock = threading.Lock()
     logger = logging.getLogger(__name__)
     on_client_connect = None
+    ship_history_getter = None
     max_clients: int = 20
     auth: dict = {}
 
@@ -59,9 +60,12 @@ class SSEHandler(BaseHTTPRequestHandler):
             self._send_unauthorized()
             return
         try:
-            if self.path == '/events':
+            path = urlparse(self.path).path
+            if path == '/events':
                 self._handle_sse()
-            elif self.path.startswith('/'):
+            elif path == '/api/ship_history':
+                self._handle_api_history()
+            elif path.startswith('/'):
                 self._handle_static()
             else:
                 self.send_response(404)
@@ -170,6 +174,30 @@ class SSEHandler(BaseHTTPRequestHandler):
             self.wfile.write(content)
         except OSError:
             self.send_error(404)
+
+    def _handle_api_history(self):
+        """GET /api/ship_history?voyage=xxx → {"id":..., "points":[{t,i_done,e_done},...]}"""
+        voyage = (parse_qs(urlparse(self.path).query).get('voyage') or [''])[0]
+        getter = self.__class__.ship_history_getter
+
+        if not getter:
+            status, body = 503, b'{"error": "history unavailable"}'
+        elif not voyage:
+            status, body = 400, b'{"error": "missing voyage"}'
+        else:
+            try:
+                data = getter(voyage)
+            except Exception as e:
+                self.logger.error(f"船舶历史读取失败: {e}", exc_info=True)
+                data = {'id': voyage, 'points': []}
+            status, body = 200, json.dumps(data, ensure_ascii=False).encode('utf-8')
+
+        self.send_response(status)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.send_header('Content-Length', str(len(body)))
+        self._send_security_headers()
+        self.end_headers()
+        self.wfile.write(body)
 
     def _get_static_dir(self):
         if getattr(sys, 'frozen', False):

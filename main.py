@@ -164,6 +164,8 @@ def main():
         sse_server=sse_server, 
         config=config.get('scheduler', {})
     )
+    # 供前端点击船舶时 GET /api/ship_history 拉取历史
+    SSEHandler.ship_history_getter = scheduler.get_ship_history
     scheduler.start()
 
     # 7. SSE 服务（在所有依赖就绪后启动，避免 on_connect 竞态）
