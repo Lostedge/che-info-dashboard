@@ -114,7 +114,7 @@ class SSEHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
             if self.__class__.on_client_connect:
-                self.__class__.on_client_connect()
+                self.__class__.on_client_connect(self)
 
             while True:
                 with self.write_lock:
@@ -213,14 +213,22 @@ class SSEHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
 
+    def send_to(self, data: dict):
+        """向当前客户端发送 SSE 消息"""
+        try:
+            with self.write_lock:
+                self.wfile.write(_encode_sse(data))
+                self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError, OSError):
+            pass
+
     @classmethod
     def broadcast(cls, data: dict):
         with cls.lock:
             if not cls.clients:
                 return
             clients = list(cls.clients)
-        json_data = json.dumps(data, ensure_ascii=False, default=_json_serial)
-        message = f"data: {json_data}\n\n".encode('utf-8')
+        message = _encode_sse(data)
         dead_clients = []
         for client in clients:
             try:
@@ -275,6 +283,11 @@ class SSEServer:
         if self.server:
             self.server.shutdown()
             self.logger.info("SSE 服务器已停止")
+
+def _encode_sse(data: dict) -> bytes:
+    """将数据编码为 SSE 帧：data: {...}\n\n"""
+    json_data = json.dumps(data, ensure_ascii=False, default=_json_serial)
+    return f"data: {json_data}\n\n".encode('utf-8')
 
 def _json_serial(obj):
     """JSON 序列化：datetime → ISO 字符串"""
