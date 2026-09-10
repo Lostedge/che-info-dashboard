@@ -70,6 +70,8 @@ scheduler:
       - "07:30"               # 第1班（交接带 07:00-07:30）
       - "18:30"               # 第2班（交接带 18:00-18:30）；单班只留第一个
     window_minutes: 30        # 每条交接带宽度 [检测点-window, 检测点)
+  ship_history:
+    retention_hours: 24       # 船舶作业历史保留时长（小时）
   test:
     enabled: false
     test_datetime: "2024-07-29 23:30:00"

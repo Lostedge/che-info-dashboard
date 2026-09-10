@@ -26,6 +26,7 @@ class Scheduler:
         self._cache: dict[str, list] = {}
 
         # 船舶作业进度历史
+        self.retention_hours = config.get('ship_history', {}).get('retention_hours', 24)
         self._ship_history: dict[str, list[dict]] = {}      # {voyage_id: [{'t': epoch_ms, 'i_done': n, 'e_done': n}]}
 
         # 统计模式
@@ -173,6 +174,7 @@ class Scheduler:
     def _fetch_ship(self, executor):
         """获取并推送船舶信息与作业进度"""
         now = datetime.now()
+        self._prune_ship_history(now)
         ships = self._try_query('SHIP', executor.get_ship_info)
         if ships is None:
             return
@@ -232,6 +234,18 @@ class Scheduler:
                 'i_done': int(r.get('i_done_num') or 0),
                 'e_done': int(r.get('e_done_num') or 0),
             })
+
+    def _prune_ship_history(self, now: datetime):
+        """清理过期的船舶作业进度历史（以离港时间为基准）"""
+        if not self._ship_history:
+            return
+        cutoff_ms = (now - timedelta(hours=self.retention_hours)).timestamp() * 1000
+        dead = [vid for vid, pts in self._ship_history.items()
+                if not pts or pts[-1]['t'] < cutoff_ms]
+        for vid in dead:
+            del self._ship_history[vid]
+        if dead:
+            self.logger.info(f"船舶历史清理: {len(dead)} 艘")
 
     def get_ship_history(self, voyage_id: str) -> dict:
         """返回指定船舶的作业进度历史"""
