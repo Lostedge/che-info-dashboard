@@ -175,16 +175,13 @@ class SSEHandler(BaseHTTPRequestHandler):
 
         if not getter:
             status, body = 503, b'{"error": "history unavailable"}'
-        elif not voyage:
-            status, body = 400, b'{"error": "missing voyage"}'
         else:
             try:
-                data = getter(voyage)
+                data = getter(voyage) if voyage else getter()
             except Exception as e:
                 self.logger.error(f"船舶历史读取失败: {e}", exc_info=True)
-                data = {'id': voyage, 'points': []}
+                data = {'ships': {}} if not voyage else {'id': voyage, 'points': []}
             status, body = 200, json.dumps(data, ensure_ascii=False).encode('utf-8')
-
         self._send_bytes(status, 'application/json; charset=utf-8', body)
 
     def _get_static_dir(self):

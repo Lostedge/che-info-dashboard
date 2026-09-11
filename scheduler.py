@@ -247,10 +247,12 @@ class Scheduler:
         if dead:
             self.logger.info(f"船舶历史清理: {len(dead)} 艘")
 
-    def get_ship_history(self, voyage_id: str) -> dict:
-        """返回指定船舶的作业进度历史"""
-        vid = str(voyage_id)
-        return {'id': vid, 'points': list(self._ship_history.get(vid, []))}
+    def get_ship_history(self, voyage_id: str | None = None) -> dict:
+        """voyage_id 有值→单船；为空→全部船舶 {ships: {id: [points]}}"""
+        if voyage_id:
+            vid = str(voyage_id)
+            return {'id': vid, 'points': list(self._ship_history.get(vid, []))}
+        return {'ships': {vid: list(pts) for vid, pts in self._ship_history.items()}}
 
     def _get_period_bounds(self, interval_minutes: int, now: datetime) -> tuple:
         """返回对齐到 interval 边界的时间窗口"""
