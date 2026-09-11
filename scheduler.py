@@ -187,8 +187,9 @@ class Scheduler:
         if prog is None:
             return
         processed = self._guard_progress(prog)
-        self._record_ship_history(now, processed)
-        self._push('PROG', 'ship_progress', processed)
+        ts_ms = int(now.timestamp() * 1000)  
+        self._record_ship_history(ts_ms, processed)
+        self._push('PROG', 'ship_progress', processed, ts=ts_ms)
 
     def _try_query(self, label, fetcher, *args):
         """执行查询，失败返回 None"""
@@ -201,9 +202,9 @@ class Scheduler:
             self.logger.error(f"{label} 获取异常: {e}")
         return None
 
-    def _push(self, label, push_type, data):
+    def _push(self, label, push_type, data, **extra):
         """推送 + 缓存 + 日志"""
-        self.sse_server.push({'type': push_type, 'data': data})
+        self.sse_server.push({'type': push_type, 'data': data, **extra})
         self._cache[push_type] = data
         self.logger.info(f"{label}: {len(data)}")
 
@@ -219,18 +220,17 @@ class Scheduler:
                     p[f] = o.get(f, 0)
         return data
 
-    def _record_ship_history(self, now: datetime, rows: list):
+    def _record_ship_history(self, ts_ms: int, rows: list):
         """记录船舶作业进度历史"""
         for r in rows:
             vid = r.get('id')
             if not vid:
                 continue
             pts = self._ship_history.setdefault(vid, [])
-            t = int(now.timestamp() * 1000)
-            if pts and pts[-1]['t'] == t:
+            if pts and pts[-1]['t'] == ts_ms:
                 continue
             pts.append({
-                't': t,
+                't': ts_ms,
                 'i_done': int(r.get('i_done_num') or 0),
                 'e_done': int(r.get('e_done_num') or 0),
             })

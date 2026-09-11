@@ -121,14 +121,14 @@ const State = {
   },
 
   /** 记录船舶进度历史 */
-  pushShipHistory(list) {
-    const now = Date.now();
+  pushShipHistory(list, ts) {
+    const t = Number(ts) || Date.now();
     for (const p of list || []) {
       if (p.id == null) continue;
       if (!(Number(p.i_plan_num) || 0) && !(Number(p.e_plan_num) || 0)) continue;
       const h = (this.shipHistory[p.id] ||= []);
       h.push({
-        t: now,
+        t,
         iPct: toPct(p.i_done_num ?? 0, p.i_plan_num ?? 0),
         ePct: toPct(p.e_done_num ?? 0, p.e_plan_num ?? 0),
       });
@@ -525,7 +525,7 @@ const SSEClient = {
       case 'ship_progress': {
         const merged = State.mergeForeignProgress(data);
         State.mergeShipProgress(merged);
-        if (!msg.init) State.pushShipHistory(merged);
+        if (!msg.init) State.pushShipHistory(merged, msg.ts);
         Ships.render();
         break;
       }
