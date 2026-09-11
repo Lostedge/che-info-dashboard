@@ -42,6 +42,9 @@ class Scheduler:
         self.shift_times = [tuple(map(int, s.split(':'))) for s in raw] 
         self.shift_window_minutes = shift_cfg.get('window_minutes', 30)
 
+        # 是否合并外贸船数据
+        self.merge_foreign_ships = config.get('ship', {}).get('merge_foreign_ships', True)
+
         # 测试模式
         test_cfg = config.get('test', {})
         self.test_datetime = None
@@ -178,7 +181,10 @@ class Scheduler:
         ships = self._try_query('SHIP', executor.get_ship_info)
         if ships is None:
             return
-        self._push('SHIP', 'ship_info', ships)
+
+        aliases = self._build_aliases(ships)                    # 构建外贸船→主船映射，关闭时 aliases 为空，下面过滤/合并自动退化
+        main_ships = [s for s in ships if s['id'] not in aliases] 
+        self._push('SHIP', 'ship_info', main_ships)
 
         working_voyages = [s['id'] for s in ships if s.get('beg_work_tim') is not None]
         if not working_voyages:
@@ -186,8 +192,10 @@ class Scheduler:
         prog = self._try_query('PROG', executor.get_ship_progress, working_voyages)
         if prog is None:
             return
-        processed = self._guard_progress(prog)
-        ts_ms = int(now.timestamp() * 1000)  
+
+        ts_ms = int(now.timestamp() * 1000)
+        merged = self._merge_foreign_progress(aliases, prog)    # 合并外贸船作业进度
+        processed = self._guard_progress(merged)                # 防止进度归零
         self._record_ship_history(ts_ms, processed)
         self._push('PROG', 'ship_progress', processed, ts=ts_ms)
 
@@ -264,6 +272,51 @@ class Scheduler:
     def get_cached_data(self) -> dict:
         """返回所有缓存数据，供新客户端连接时推送"""
         return dict(self._cache)
+
+    @staticmethod
+    def _is_forecast(s) -> bool:
+        """是否为预报船舶（未开工且未靠泊）"""
+        return not s.get('beg_work_tim') and not s.get('rtb')
+
+    @staticmethod
+    def _foreign_base(name: str):
+        """外贸船名去掉末尾的“外”后缀"""
+        return name[:-1] if name.endswith('外') else None
+
+    def _build_aliases(self, ships: list) -> dict:
+        """外贸船 id -> 主船 id；不合并时返回 {}"""
+        if not self.merge_foreign_ships:
+            return {}
+        by_name = {}
+        for s in ships:
+            n = (s.get('ship_name') or '').strip()
+            if not n:
+                continue
+            cur = by_name.get(n)
+            if cur is None or (self._is_forecast(cur) and not self._is_forecast(s)):
+                by_name[n] = s
+        aliases = {}
+        for s in ships:
+            base = self._foreign_base((s.get('ship_name') or '').strip())
+            if base and base in by_name:
+                aliases[s['id']] = by_name[base]['id']
+        return aliases
+
+    @staticmethod
+    def _merge_foreign_progress(aliases: dict, rows: list) -> list:
+        """外贸船作业进度并入主船，返回仅含主船的行"""
+        by_id = {p['id']: p for p in rows}
+        fields = ('i_plan_num', 'i_done_num', 'i_queue_num',
+                  'e_plan_num', 'e_done_num', 'e_queue_num')
+        keep = []
+        for p in rows:
+            target = by_id.get(aliases.get(p['id']))
+            if target is not None:
+                for f in fields:
+                    target[f] = (target.get(f) or 0) + (p.get(f) or 0)
+                continue
+            keep.append(p)
+        return keep
 
     def stop(self):
         self._scheduler.shutdown(wait=False)
