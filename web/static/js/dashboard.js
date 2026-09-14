@@ -3,8 +3,8 @@
  * ============================================================
  * State.devices  — 全量设备, 按 id merge
  * State.ships    — 船舶列表
- * State.shipHistory — 船舶作业进度历史（本地缓存）
- * State.shipSeries  — 船舶作业进度历史（全量，后端 GET）
+ * State.shipProgPct — 船舶作业进度历史百分比（本地缓存）
+ * State.shipProgNum — 船舶作业进度历史箱量（全量，后端 GET）
  * 
  * SSE → _route() → State.merge() → render()
  */
@@ -51,42 +51,42 @@ function filterByConfig(devices, type) {
 const State = {
   devices: {},
   ships: [],
-  shipHistory: {},          // { [id]: [{ t, iPct, ePct }] }
+  shipProgPct: {},          // { [id]: [{ t, iPct, ePct }] }      百分比历史，用于 sparkline
+  shipProgNum: {},          // { [id]: [{ t, i_done, e_done }] }  详细箱量历史，用于 shipDetail
+  shipProgNumLoaded: false, // 是否已 GET 详细箱量历史
   statsMode: 'shift',       // 'day'=当日 / 'shift'=当班（默认当班，由后端 stats_mode 推送更新）
-  shipSeries: {},           // { [id]: [{ t, i_done, e_done }] }
-  shipSeriesLoaded: false,  // 是否已 GET 过全量
 
   // 船舶进度历史配置
   get CFG() {
     return Config.data?.ship_history ?? {};
   },
 
-  _initHistory() {
-    try { this.shipHistory = JSON.parse(localStorage.getItem('shipHistory')) || {}; }
-    catch { this.shipHistory = {}; }
+  _initShipProgPct() {
+    try { this.shipProgPct = JSON.parse(localStorage.getItem('shipProgPct')) || {}; }
+    catch { this.shipProgPct = {}; }
   },
 
-  _saveHistory() {
+  _saveShipProgPct() {
     const cutoff = Date.now() - this.CFG.ttlHours * 3600 * 1000;
-    for (const [id, h] of Object.entries(this.shipHistory)) {
+    for (const [id, h] of Object.entries(this.shipProgPct)) {
       const last = h[h.length - 1];
-      if (!last || last.t < cutoff) { delete this.shipHistory[id]; continue; }
+      if (!last || last.t < cutoff) { delete this.shipProgPct[id]; continue; }
       if (h.length > this.CFG.maxPoints) h.splice(0, h.length - this.CFG.maxPoints);
     }
-    const ids = Object.keys(this.shipHistory)
+    const ids = Object.keys(this.shipProgPct)
       .sort((a, b) => {
-        const ha = this.shipHistory[a], hb = this.shipHistory[b];
+        const ha = this.shipProgPct[a], hb = this.shipProgPct[b];
         return ha[ha.length - 1].t - hb[hb.length - 1].t;
       });
-    for (const id of ids.slice(0, Math.max(0, ids.length - this.CFG.maxShips))) delete this.shipHistory[id];
+    for (const id of ids.slice(0, Math.max(0, ids.length - this.CFG.maxShips))) delete this.shipProgPct[id];
     try {
-      localStorage.setItem('shipHistory', JSON.stringify(this.shipHistory));
+      localStorage.setItem('shipProgPct', JSON.stringify(this.shipProgPct));
     } catch (e) { /* localStorage 满/被禁用时不致命，忽略 */ }
   },
 
   /** 取船舶进度历史的渲染采样：间隔取点 + 最多 renderPoints 个 */
-  renderHistory(id) {
-    const h = this.shipHistory[id];
+  sampleShipProgPct(id) {
+    const h = this.shipProgPct[id];
     if (!h || h.length < 2) return [];
     const { renderInterval, renderPoints } = this.CFG;
     const out = [];
@@ -123,24 +123,24 @@ const State = {
     }
   },
 
-  /** 记录船舶进度历史 */
-  pushShipHistory(list, ts) {
+  /** 追加记录船舶进度百分比点 */
+  pushShipProgPct(list, ts) {
     const t = Number(ts) || Date.now();
     for (const p of list || []) {
       if (p.id == null) continue;
       if (!(Number(p.i_plan_num) || 0) && !(Number(p.e_plan_num) || 0)) continue;
-      const h = (this.shipHistory[p.id] ||= []);
+      const h = (this.shipProgPct[p.id] ||= []);
       h.push({
         t,
         iPct: toPct(p.i_done_num ?? 0, p.i_plan_num ?? 0),
         ePct: toPct(p.e_done_num ?? 0, p.e_plan_num ?? 0),
       });
     }
-    this._saveHistory();
+    this._saveShipProgPct();
   },
 
   /** GET 获取全部船舶作业进度历史 */
-  setShipSeries(ships) {
+  setShipProgNum(ships) {
     const out = {};
     for (const [id, pts] of Object.entries(ships || {})) {
       out[id] = (pts || [])
@@ -148,17 +148,17 @@ const State = {
         .map(p => ({ t: p.t, i_done: Number(p.i_done || 0), e_done: Number(p.e_done || 0) }))
         .sort((a, b) => a.t - b.t);
     }
-    this.shipSeries = out;
-    this.shipSeriesLoaded = true;
+    this.shipProgNum = out;
+    this.shipProgNumLoaded = true;
   },
 
-  /** 合并后续推送的船舶作业进度 */
-  pushShipSeries(list, ts) {
+  /** 追加记录船舶作业进度箱量点 */
+  pushShipProgNum(list, ts) {
     const t = Number(ts) || Date.now();
     for (const p of list || []) {
       const id = p.id;
       if (id == null) continue;
-      const arr = (this.shipSeries[id] ||= []);
+      const arr = (this.shipProgNum[id] ||= []);
       const i = Number(p.i_done_num || 0), e = Number(p.e_done_num || 0);
       const last = arr[arr.length - 1];
       if (last && Math.abs(last.t - t) < 60_000) { last.i_done = i; last.e_done = e; }
@@ -326,7 +326,7 @@ const Ships = {
 
   /** 进度历史 SVG 折线图 */
   _sparkline(s) {
-    const h = State.renderHistory(s.id);
+    const h = State.sampleShipProgPct(s.id);
     if (h.length < 2) return '';
     const W = 96, H = 30, P = 2;
     const iw = W - P * 2, ih = H - P * 2;
@@ -389,9 +389,9 @@ const ShipDetail = {
     this.title.textContent = ship ? `${ship.ship_name || id}  ${ship.voyage || ''}`.trim() : id;
     this.wrap.classList.remove('hidden');
 
-    if (!State.shipSeriesLoaded) {            // 首次打开时 GET 全量船舶作业进度历史
+    if (!State.shipProgNumLoaded) {            // 首次打开时 GET 全量船舶作业进度历史
       const ships = await this._fetchAll();
-      if (ships) State.setShipSeries(ships);
+      if (ships) State.setShipProgNum(ships);
     }
     this.render();
   },
@@ -404,9 +404,9 @@ const ShipDetail = {
   /** 推送到达后由 _route 调用 */
   refresh() { if (this.isOpen()) this.render(); },
 
-  /** 断线重连：失效缓存；若面板打开则重拉一次补齐断线期间 */
+  /** 断线重连，若面板打开则重拉一次补齐断线期间数据 */
   async onReconnect() {
-    State.shipSeriesLoaded = false;
+    State.shipProgNumLoaded = false;
     if (this.isOpen()) await this.open(this.id);
   },
 
@@ -427,7 +427,7 @@ const ShipDetail = {
   /** 渲染（暂为骨架） */
   render() {
     const ship = this.current();
-    const pts  = State.shipSeries[this.id] || [];
+    const pts  = State.shipProgNum[this.id] || [];
     const last = pts[pts.length - 1];
     const plan = Number(ship?.i_plan_num || 0) + Number(ship?.e_plan_num || 0);
     if (this.status) {
@@ -585,8 +585,8 @@ const SSEClient = {
       case 'ship_progress': {
         State.mergeShipProgress(data);
         if (!msg.init) {
-          State.pushShipHistory(data, msg.ts);
-          if (State.shipSeriesLoaded) State.pushShipSeries(data, msg.ts);
+          State.pushShipProgPct(data, msg.ts);
+          if (State.shipProgNumLoaded) State.pushShipProgNum(data, msg.ts);
         }
         Ships.render();
         ShipDetail.refresh();
@@ -626,7 +626,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   Ships.init();
   ShipDetail.init();
   Charts.init();
-  State._initHistory();
+  State._initShipProgPct();
   await Config.load();
   SSEClient.init();
 });
