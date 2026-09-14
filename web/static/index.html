@@ -38,6 +38,22 @@
       <div class="ship-panel" id="ship-info">
         <span class="ship-placeholder">等待数据...</span>
       </div>
+      <!-- 船舶作业详情 -->
+      <div id="ship-detail" class="panel ship-detail hidden">
+        <div class="sd-head">
+          <span class="sd-title" id="sd-title"></span>
+          <span class="sd-status" id="sd-status"></span>
+          <span class="sd-ref">
+            <label for="sd-duration">预计作业时长 (h)</label>
+            <input type="number" id="sd-duration" min="0.5" step="0.5">
+          </span>
+          <button id="sd-close" class="sd-close" type="button">×</button>
+        </div>
+        <div class="sd-chart-wrap">
+          <canvas id="sd-chart"></canvas>
+        </div>
+      </div>
+      <!-- 作业量统计图表 -->
       <div class="panel chart-panel">
         <div class="chart-area">
           <div class="chart-header">

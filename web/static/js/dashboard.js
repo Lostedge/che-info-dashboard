@@ -3,7 +3,9 @@
  * ============================================================
  * State.devices  — 全量设备, 按 id merge
  * State.ships    — 船舶列表
- *
+ * State.shipHistory — 船舶作业进度历史（本地缓存）
+ * State.shipSeries  — 船舶作业进度历史（全量，后端 GET）
+ * 
  * SSE → _route() → State.merge() → render()
  */
 
@@ -49,8 +51,10 @@ function filterByConfig(devices, type) {
 const State = {
   devices: {},
   ships: [],
-  shipHistory: {},        // { [shipId]: [{ t, iPct, ePct }] }
-  statsMode: 'shift',     // 'day'=当日 / 'shift'=当班（默认当班，由后端 stats_mode 推送更新）
+  shipHistory: {},          // { [id]: [{ t, iPct, ePct }] }
+  statsMode: 'shift',       // 'day'=当日 / 'shift'=当班（默认当班，由后端 stats_mode 推送更新）
+  shipSeries: {},           // { [id]: [{ t, i_done, e_done }] }
+  shipSeriesLoaded: false,  // 是否已 GET 过全量
 
   // 船舶进度历史配置
   get CFG() {
@@ -133,6 +137,33 @@ const State = {
       });
     }
     this._saveHistory();
+  },
+
+  /** GET 获取全部船舶作业进度历史 */
+  setShipSeries(ships) {
+    const out = {};
+    for (const [id, pts] of Object.entries(ships || {})) {
+      out[id] = (pts || [])
+        .filter(p => p.t != null)
+        .map(p => ({ t: p.t, i_done: Number(p.i_done || 0), e_done: Number(p.e_done || 0) }))
+        .sort((a, b) => a.t - b.t);
+    }
+    this.shipSeries = out;
+    this.shipSeriesLoaded = true;
+  },
+
+  /** 合并后续推送的船舶作业进度 */
+  pushShipSeries(list, ts) {
+    const t = Number(ts) || Date.now();
+    for (const p of list || []) {
+      const id = p.id;
+      if (id == null) continue;
+      const arr = (this.shipSeries[id] ||= []);
+      const i = Number(p.i_done_num || 0), e = Number(p.e_done_num || 0);
+      const last = arr[arr.length - 1];
+      if (last && Math.abs(last.t - t) < 60_000) { last.i_done = i; last.e_done = e; }
+      else arr.push({ t, i_done: i, e_done: e });
+    }
   },
 };
 
@@ -231,7 +262,7 @@ const Ships = {
         ? `<div class="sc-progress-wrap">${progress}${spark}</div>`
         : '<div class="sc-progress-wrap--idle"></div>';
 
-      return `<div class="ship-card state-${st.state}" title="${esc(title)}">
+      return `<div class="ship-card state-${st.state}" data-id="${esc(s.id)}" title="${esc(title)}">
         <div class="sc-info">
           <span class="sc-name">
             <span class="sc-ship">${esc(name)}</span>
@@ -308,16 +339,6 @@ const Ships = {
     </svg>`;
   },
 
-  /** 拆分 ship_label: "船名 进口/出口" → { name, voyage } */
-  _splitLabel(label) {
-    const idx = label.lastIndexOf(' ');
-    if (idx === -1) return { name: label, voyage: '' };
-    return {
-      name:   label.substring(0, idx),
-      voyage: label.substring(idx + 1),
-    };
-  },
-
   /** 判定船舶状态 */
   _shipState(s) {
     if (s.beg_work_tim) {
@@ -333,6 +354,89 @@ const Ships = {
     const m = String(raw || '').match(/(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
     return m ? `${m[2]}-${m[3]} ${m[4]}:${m[5]}` : '--';
   }
+};
+
+
+/* ============================================================
+   ShipDetail
+   ============================================================ */
+
+const ShipDetail = {
+  id: null,
+
+  init() {
+    this.wrap   = document.getElementById('ship-detail');
+    this.title  = document.getElementById('sd-title');
+    this.status = document.getElementById('sd-status');
+    this.durInp = document.getElementById('sd-duration');
+    if (!this.wrap) return;
+
+    document.getElementById('sd-close').onclick = () => this.close();
+    this.durInp.addEventListener('change', () => this.refresh());
+    document.getElementById('ship-info').addEventListener('click', (e) => {
+      const card = e.target.closest('.ship-card');
+      if (!card || card.classList.contains('ship-card--empty') || card.dataset.id == null) return;
+      if (this.isOpen() && String(this.id) === String(card.dataset.id)) { this.close(); return; }
+      this.open(card.dataset.id);
+    });
+  },
+
+  isOpen() { return this.id != null; },
+
+  async open(id) {
+    this.id = id;
+    const ship = this.current();
+    this.title.textContent = ship ? `${ship.ship_name || id}  ${ship.voyage || ''}`.trim() : id;
+    this.wrap.classList.remove('hidden');
+
+    if (!State.shipSeriesLoaded) {            // 首次打开时 GET 全量船舶作业进度历史
+      const ships = await this._fetchAll();
+      if (ships) State.setShipSeries(ships);
+    }
+    this.render();
+  },
+
+  close() {
+    this.id = null;
+    this.wrap.classList.add('hidden');
+  },
+
+  /** 推送到达后由 _route 调用 */
+  refresh() { if (this.isOpen()) this.render(); },
+
+  /** 断线重连：失效缓存；若面板打开则重拉一次补齐断线期间 */
+  async onReconnect() {
+    State.shipSeriesLoaded = false;
+    if (this.isOpen()) await this.open(this.id);
+  },
+
+  async _fetchAll() {
+    try {
+      const res = await fetch('api/ship_history');
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.ships || {};
+    } catch { return null; }
+  },
+
+  /** 当前船舶对象 */
+  current() {
+    return State.ships.find(s => String(s.id) === String(this.id)) || null;
+  },
+
+  /** 渲染（暂为骨架） */
+  render() {
+    const ship = this.current();
+    const pts  = State.shipSeries[this.id] || [];
+    const last = pts[pts.length - 1];
+    const plan = Number(ship?.i_plan_num || 0) + Number(ship?.e_plan_num || 0);
+    if (this.status) {
+      this.status.textContent = last
+        ? `${pts.length}, ${last.i_done + last.e_done}${plan ? ' / ' + plan : ''}`
+        : '暂无数据';
+    }
+    // TODO: charts.js
+  },
 };
 
 
@@ -429,6 +533,7 @@ const SSEClient = {
       this.retryCount = 0;
       console.log('[SSE] 已连接');
       Header.setConnected(true);
+      ShipDetail.onReconnect();
     };
 
     es.onmessage = (e) => {
@@ -479,8 +584,12 @@ const SSEClient = {
 
       case 'ship_progress': {
         State.mergeShipProgress(data);
-        if (!msg.init) State.pushShipHistory(data, msg.ts);
+        if (!msg.init) {
+          State.pushShipHistory(data, msg.ts);
+          if (State.shipSeriesLoaded) State.pushShipSeries(data, msg.ts);
+        }
         Ships.render();
+        ShipDetail.refresh();
         break;
       }
 
@@ -515,6 +624,7 @@ const SSEClient = {
 document.addEventListener('DOMContentLoaded', async () => {
   Header.init();
   Ships.init();
+  ShipDetail.init();
   Charts.init();
   State._initHistory();
   await Config.load();
