@@ -465,7 +465,7 @@ const ShipDetail = {
       if (ships) State.setShipProgNum(ships);
     }
     this.refresh();
-    Charts.shipDetailResize('sd-chart');
+    Charts.resizeShipDetail('sd-chart');
   },
 
   setVisible(v) { 
@@ -492,7 +492,7 @@ const ShipDetail = {
     document.getElementById('sd-status').textContent = last
       ? `${pts.length}, ${last.i_done + last.e_done}${plan ? ' / ' + plan : ''}`
       : '暂无数据';
-    Charts.shipDetail('sd-chart', {
+    Charts.renderShipDetail('sd-chart', {
       points: pts,
       plan,
       t0: this.t0,
@@ -667,22 +667,22 @@ const SSEClient = {
 
       case 'ym_stats':
         State.merge(data);
-        Charts.update('chart-rtg', filterByConfig(State.getByType('2'), 'rtg'));
-        Charts.update('chart-fl',  filterByConfig(State.getByType('3'), 'fl'));
-        Charts.syncYAxis();
-        Charts.updateSummaries();
+        Charts.updateDeviceChart('chart-rtg', filterByConfig(State.getByType('2'), 'rtg'));
+        Charts.updateDeviceChart('chart-fl',  filterByConfig(State.getByType('3'), 'fl'));
+        Charts.syncDeviceAxis();
+        Charts.updateDeviceSummaries();
         break;
 
       case 'qc_stats':
         State.merge(data);
-        Charts.update('chart-qc', filterByConfig(State.getByType('1'), 'qc'));
-        Charts.syncYAxis();
-        Charts.updateSummaries();
+        Charts.updateDeviceChart('chart-qc', filterByConfig(State.getByType('1'), 'qc'));
+        Charts.syncDeviceAxis();
+        Charts.updateDeviceSummaries();
         break;
 
       case 'stats_mode':
         State.statsMode = msg.data?.mode || 'shift';
-        Charts.updateTitles();
+        Charts.updateDeviceTitles();
         break;
     }
   },
