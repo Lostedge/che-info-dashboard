@@ -19,6 +19,20 @@ function escapeHtml(str) {
 /** done/plan → 0-100 百分比 */
 const toPct = (done, plan) => (plan ? Math.min(100, Math.round((done / plan) * 100)) : 0);
 
+/** epoch ms → 'MM-DD HH:MM' */
+function fmtMMDDHHmm(ts) {
+  const d = new Date(ts), p = n => String(n).padStart(2, '0');
+  return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+/** 'YYYY-MM-DD HH:MM[:SS]' → epoch ms；失败返回 null */
+function parseTs(str) {
+  if (!str) return null;
+  const m = String(str).match(/(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+  if (!m) return null;
+  return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]).getTime();
+}
+
 
 /* ============================================================
    Config - 处理静态配置文件（web/static/config.json）
@@ -374,6 +388,7 @@ const DetailPanel = {
     if (!this.el) return;
 
     document.getElementById('sd-close').onclick = () => this.close();
+    document.getElementById('sd-duration').addEventListener('change', () => ShipDetail.refresh());
 
     document.getElementById('ship-info').addEventListener('click', (e) => {
       const card = e.target.closest('.ship-card');
@@ -435,11 +450,13 @@ const DetailPanel = {
 const ShipDetail = {
   id: null,
   visible: false,
+  t0: null,
 
   async show(id) {
     if (!this.visible) return; 
     this.id = id;
     const ship = State.ships.find(s => String(s.id) === String(id));
+    this.t0 = parseTs(ship?.beg_work_tim);
     document.getElementById('sd-ship').textContent   = ship?.ship_name || id;
     document.getElementById('sd-voyage').textContent = ship?.voyage || '';
 
@@ -448,9 +465,13 @@ const ShipDetail = {
       if (ships) State.setShipProgNum(ships);
     }
     this.refresh();
+    Charts.shipDetailResize('sd-chart');
   },
 
-  setVisible(v) { this.visible = v; if (!v) this.id = null; },
+  setVisible(v) { 
+    this.visible = v;
+    if (!v) { this.id = null; this.t0 = null; }
+  },
 
   refresh() { if (this.visible && this.id != null) this.render(); },
 
@@ -471,7 +492,12 @@ const ShipDetail = {
     document.getElementById('sd-status').textContent = last
       ? `${pts.length}, ${last.i_done + last.e_done}${plan ? ' / ' + plan : ''}`
       : '暂无数据';
-    // TODO(charts.js): Charts.shipDetail(...)
+    Charts.shipDetail('sd-chart', {
+      points: pts,
+      plan,
+      t0: this.t0,
+      dur: Number(document.getElementById('sd-duration').value) || 0,
+    });
   },
 };
 

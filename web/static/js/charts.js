@@ -4,8 +4,43 @@
  */
 
 
+/**
+ * 构建船舶详情图数据
+ * @param points [{ t, i_done, e_done }] 累计值，按 t 升序
+ * @param plan   总计划箱量（i_plan + e_plan）
+ * @param t0     开工时刻 epoch ms（可为 null）
+ * @param dur    预计作业时长（小时）
+ */
+function buildShipDetailData(points, plan, t0, dur) {
+  const pts   = (points || []).filter(p => p.t != null);
+  const start = t0 ?? pts[0]?.t ?? Date.now();
+  const durMs = (Number(dur) || 0) * 3600 * 1000;
+  const end   = durMs > 0 ? start + durMs : null;
+
+  // x 刻度：开工起点 + 各采样点 + 参考线终点
+  const times = [...new Set([start, ...(end ? [end] : []), ...pts.map(p => p.t)])]
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b);
+
+  // 实际累计（起点锚定 0）
+  const actual = times.map(t => {
+    if (t <= start) return 0;
+    const hit = pts.find(p => Math.abs(p.t - t) < 60_000);
+    return hit ? (Number(hit.i_done) + Number(hit.e_done)) : null;
+  });
+
+  // 参考直线：start → end，0 → plan
+  const hasRef = plan > 0 && durMs > 0;
+  const ref = times.map(t =>
+    (hasRef && t >= start && t <= end) ? plan * ((t - start) / durMs) : null);
+
+  return { labels: times.map(fmtMMDDHHmm), actual, ref };
+}
+
+
 const Charts = {
-  instances: {},
+  instances: {},   // 作业量柱状图（chart-rtg/qc/fl）
+  detail: {},      // 详情折线图（sd-chart），单独存放，避免被 syncYAxis 干扰
 
   /** 从 CSS 读取颜色 */
   getColors() {
@@ -188,5 +223,63 @@ const Charts = {
     document.querySelectorAll('.chart-title .ct-mode').forEach(el => {
       el.textContent = shift ? '当班' : '当日';
     });
+  },
+
+  /** 船舶详情折线：有实例则增量更新 */
+  shipDetail(canvasId, { points, plan, t0, dur }) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return null;
+
+    const built    = buildShipDetailData(points, plan, t0, dur);
+    const refLabel = `作业进度参考(${dur}h)`;
+    let chart = this.detail[canvasId];
+
+    if (chart) {
+      chart.data.labels             = built.labels;
+      chart.data.datasets[0].data   = built.actual;
+      chart.data.datasets[1].data   = built.ref;
+      chart.data.datasets[1].label  = refLabel;
+      chart.update('none');
+      return chart;
+    }
+
+    const c = this.getColors();
+    chart = new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: built.labels,
+        datasets: [
+          { label: '实际完成(合计)', data: built.actual, borderColor: '#4cc2ff',
+            backgroundColor: 'rgba(76,194,255,.15)', fill: true, spanGaps: true,
+            pointRadius: 1.5, tension: 0.25, borderWidth: 2 },
+          { label: refLabel, data: built.ref, borderColor: '#ffd04c',
+            borderDash: [6, 4], pointRadius: 0, fill: false, borderWidth: 1.5 },
+        ],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: false,
+        plugins: {
+          legend: { labels: { color: c.soft, font: { size: 13 }, boxWidth: 14, boxHeight: 14 } },
+          datalabels: { display: false },          // 关掉全局注册的数据标签
+        },
+        scales: {
+          x: { ticks: { color: c.soft, maxTicksLimit: 10, autoSkip: true },
+               grid: { color: c.grid } },
+          y: { beginAtZero: true, ticks: { color: c.soft }, grid: { color: c.grid },
+               title: { display: true, text: '累计作业箱量', color: c.dim } },
+        },
+      },
+    });
+    this.detail[canvasId] = chart;
+    return chart;
+  },
+
+  /** 面板显示后调用：修正隐藏期间算出的 0 尺寸 */
+  shipDetailResize(canvasId) { this.detail[canvasId]?.resize(); },
+
+  /** 彻底移除 */
+  shipDetailRemove(canvasId) {
+    const chart = this.detail[canvasId];
+    if (chart) { chart.destroy(); delete this.detail[canvasId]; }
   },
 };
