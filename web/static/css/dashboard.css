@@ -584,59 +584,115 @@ main {
   background: rgba(255, 255, 255, 0.03);
 }
 
-/* 船舶详情面板 */
-.ship-detail.hidden { display: none; }
+/* ============================================================
+   详情面板
+   ============================================================ */
 
-.ship-detail {
-  flex-shrink: 0;
-  padding: 8px 10px;
+.detail-panel {
+  display: none; 
+  min-height: 0;
 }
 
-.sd-head {
+.center-col.detail-open .detail-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--gap);
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 展开时隐藏作业量统计 */
+.center-col.detail-open .chart-panel { display: none; }
+
+.detail-slot {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.detail-slot.hidden { display: none; }
+.detail-ship { flex: 2; }
+.detail-qc   { flex: 1; }
+
+.detail-ship .sd-chart-wrap {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.detail-head { 
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 6px;
+  gap: var(--gap);
+  margin-bottom: 0.6rem;
+}
+
+.detail-panel .qd-head { display: none; }
+.detail-panel[data-mode="qc"] .qd-head { display: flex; }
+
+/* 船舶详情 */
+.sd-head {
+  height: 5rem;
+  padding: 1rem 1.4rem;
 }
 
 .sd-title {
-  font-size: 14px;
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.sd-ship {
+  font-size: 1.6rem;
   font-weight: 600;
+  color: var(--c-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sd-voyage {
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: var(--c-soft);
 }
 
 .sd-status {
-  font-size: 12px;
+  font-size: 1.2rem;
   color: var(--c-soft);
 }
 
 .sd-ref {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: 0.6rem;
+  font-size: 1.4rem;
   margin-left: auto;
 }
 
 .sd-ref input {
-  width: 72px;
+  width: 5rem;
   background: transparent;
   color: inherit;
   border: 1px solid rgba(255,255,255,.3);
-  border-radius: 4px;
-  padding: 2px 6px;
+  border-radius: 0.4rem;
+  padding: 0.2rem 0.6rem;
 }
 
 .sd-close {
   background: none;
   border: none;
   color: inherit;
-  font-size: 16px;
+  font-size: 1.6rem;
   cursor: pointer;
 }
 
-.sd-chart-wrap { 
-  min-height: 300px
-}
+/* ============================================================
+   作业量图表面板
+   ============================================================ */
 
 .chart-panel {
   flex: 1;

@@ -358,57 +358,101 @@ const Ships = {
 
 
 /* ============================================================
-   ShipDetail
+   DetailPanel
    ============================================================ */
 
-const ShipDetail = {
-  id: null,
+const DetailPanel = {
+  mode: null,   // null | 'ship' | 'qc'
 
   init() {
-    this.wrap   = document.getElementById('ship-detail');
-    this.title  = document.getElementById('sd-title');
-    this.status = document.getElementById('sd-status');
-    this.durInp = document.getElementById('sd-duration');
-    if (!this.wrap) return;
+    this.el   = document.getElementById('detail-panel');
+    this.col  = document.querySelector('.center-col');
+    this.slot = {
+      ship: document.getElementById('ship-detail'),
+      qc:   document.getElementById('qc-detail'),
+    };
+    if (!this.el) return;
 
     document.getElementById('sd-close').onclick = () => this.close();
-    this.durInp.addEventListener('change', () => this.refresh());
+
     document.getElementById('ship-info').addEventListener('click', (e) => {
       const card = e.target.closest('.ship-card');
       if (!card || card.classList.contains('ship-card--empty') || card.dataset.id == null) return;
-      if (this.isOpen() && String(this.id) === String(card.dataset.id)) { this.close(); return; }
-      this.open(card.dataset.id);
+      if (this.mode === 'ship' && String(ShipDetail.id) === String(card.dataset.id)) { this.close(); return; }
+      this.openShip(card.dataset.id);
     });
+
+    // TODO: qc 卡片点击 → this.openQc(qcId)（后续）
   },
 
-  isOpen() { return this.id != null; },
+  isOpen() { return this.mode != null; },
 
-  async open(id) {
-    this.id = id;
-    const ship = this.current();
-    this.title.textContent = ship ? `${ship.ship_name || id}  ${ship.voyage || ''}`.trim() : id;
-    this.wrap.classList.remove('hidden');
+  /** 从船舶卡片打开：ship + qc */
+  async openShip(id) {
+    this.mode = 'ship';
+    this._show({ ship: true, qc: false });
+    await ShipDetail.show(id);
+  },
 
-    if (!State.shipProgNumLoaded) {            // 首次打开时 GET 全量船舶作业进度历史
-      const ships = await this._fetchAll();
-      if (ships) State.setShipProgNum(ships);
-    }
-    this.render();
+  /** 从 qc 面板单独打开：仅 qc */
+  async openQc(id) {
+    this.mode = 'qc';
+    this._show({ ship: false, qc: true });
+    await QcDetail.show(id);
   },
 
   close() {
-    this.id = null;
-    this.wrap.classList.add('hidden');
+    this.mode = null;
+    this.col.classList.remove('detail-open');
+    ShipDetail.setVisible(false);
+    QcDetail.setVisible(false);
   },
 
-  /** 推送到达后由 _route 调用 */
-  refresh() { if (this.isOpen()) this.render(); },
+  /** 推送到达 */
+  refresh() {
+    ShipDetail.refresh();
+    QcDetail.refresh();
+  },
 
-  /** 断线重连，若面板打开则重拉一次补齐断线期间数据 */
+  /** 断线重连 */
   async onReconnect() {
     State.shipProgNumLoaded = false;
-    if (this.isOpen()) await this.open(this.id);
+    if (this.mode === 'ship') await ShipDetail.show(ShipDetail.id);
+    if (this.mode === 'qc')   await QcDetail.show(QcDetail.id);
   },
+
+  _show({ ship, qc }) {
+    this.slot.ship.classList.toggle('hidden', !ship);
+    this.slot.qc.classList.toggle('hidden', !qc);
+    ShipDetail.setVisible(ship);
+    QcDetail.setVisible(qc);
+    this.el.dataset.mode = ship ? 'ship' : 'qc';
+    this.col.classList.add('detail-open');
+  },
+};
+
+
+const ShipDetail = {
+  id: null,
+  visible: false,
+
+  async show(id) {
+    if (!this.visible) return; 
+    this.id = id;
+    const ship = State.ships.find(s => String(s.id) === String(id));
+    document.getElementById('sd-ship').textContent   = ship?.ship_name || id;
+    document.getElementById('sd-voyage').textContent = ship?.voyage || '';
+
+    if (!State.shipProgNumLoaded) {                 // 首次 GET 全量
+      const ships = await this._fetchAll();
+      if (ships) State.setShipProgNum(ships);
+    }
+    this.refresh();
+  },
+
+  setVisible(v) { this.visible = v; if (!v) this.id = null; },
+
+  refresh() { if (this.visible && this.id != null) this.render(); },
 
   async _fetchAll() {
     try {
@@ -419,24 +463,26 @@ const ShipDetail = {
     } catch { return null; }
   },
 
-  /** 当前船舶对象 */
-  current() {
-    return State.ships.find(s => String(s.id) === String(this.id)) || null;
-  },
-
-  /** 渲染（暂为骨架） */
   render() {
-    const ship = this.current();
+    const ship = State.ships.find(s => String(s.id) === String(this.id));
     const pts  = State.shipProgNum[this.id] || [];
     const last = pts[pts.length - 1];
     const plan = Number(ship?.i_plan_num || 0) + Number(ship?.e_plan_num || 0);
-    if (this.status) {
-      this.status.textContent = last
-        ? `${pts.length}, ${last.i_done + last.e_done}${plan ? ' / ' + plan : ''}`
-        : '暂无数据';
-    }
-    // TODO: charts.js
+    document.getElementById('sd-status').textContent = last
+      ? `${pts.length}, ${last.i_done + last.e_done}${plan ? ' / ' + plan : ''}`
+      : '暂无数据';
+    // TODO(charts.js): Charts.shipDetail(...)
   },
+};
+
+
+const QcDetail = {
+  id: null,
+  visible: false,
+  async show(id) { this.id = id; /* TODO: 数据后续添加 */ this.refresh(); },
+  setVisible(v) { this.visible = v; if (!v) this.id = null; }, 
+  refresh() { if (this.visible && this.id != null) this.render(); },
+  render() { /* TODO */ },
 };
 
 
@@ -533,7 +579,7 @@ const SSEClient = {
       this.retryCount = 0;
       console.log('[SSE] 已连接');
       Header.setConnected(true);
-      ShipDetail.onReconnect();
+      DetailPanel.onReconnect();
     };
 
     es.onmessage = (e) => {
@@ -589,7 +635,7 @@ const SSEClient = {
           if (State.shipProgNumLoaded) State.pushShipProgNum(data, msg.ts);
         }
         Ships.render();
-        ShipDetail.refresh();
+        DetailPanel.refresh();
         break;
       }
 
@@ -624,7 +670,7 @@ const SSEClient = {
 document.addEventListener('DOMContentLoaded', async () => {
   Header.init();
   Ships.init();
-  ShipDetail.init();
+  DetailPanel.init();
   Charts.init();
   State._initShipProgPct();
   await Config.load();
