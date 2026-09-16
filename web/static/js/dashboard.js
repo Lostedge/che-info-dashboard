@@ -122,6 +122,12 @@ const State = {
     }
   },
 
+  /** 按 id 复用旧对象合并 ship_info：保留前端挂在对象上的字段（如 dur） */
+  mergeShips(list) {
+    const old = new Map((this.ships || []).map(s => [String(s.id), s]));
+    this.ships = (list || []).map(s => Object.assign(old.get(String(s.id)) || {}, s));
+  },
+
   /** @param {'1'|'2'|'3'} prefix */
   getByType(prefix) {
     return Object.values(this.devices)
@@ -477,6 +483,7 @@ const ShipDetail = {
     this.t0 = parseTs(ship?.beg_work_tim);
     this.el.ship.textContent   = ship?.ship_name || id;
     this.el.voyage.textContent = ship?.voyage || '';
+    this.dur = Number(ship?.dur) || 0;
 
     if (!State.shipProgNumLoaded) {                 // 首次 GET 全量
       const ships = await this._fetchAll();
@@ -503,6 +510,8 @@ const ShipDetail = {
 
   setDur(hours) {
     this.dur = Math.max(0, Math.round((Number(hours) || 0) * 10) / 10);
+    const s = State.ships.find(x => String(x.id) === String(this.id));
+    if (s) s.dur = this.dur || undefined; 
     this.syncTimeInputs();
     this.refresh();
   },
@@ -693,7 +702,7 @@ const SSEClient = {
         break;
 
       case 'ship_info':
-        State.ships = data
+        State.mergeShips(data);
         Ships.render();
         break;
 
