@@ -25,6 +25,12 @@ function fmtMMDDHHmm(ts) {
   return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
+/** epoch ms → 'YYYY-MM-DDTHH:MM'（datetime-local 的值，本地时间） */
+function toLocalInputValue(ts) {
+  const d = new Date(ts), p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 /** 'YYYY-MM-DD HH:MM[:SS]' → epoch ms；失败返回 null */
 function parseTs(str) {
   if (!str) return null;
@@ -388,7 +394,6 @@ const DetailPanel = {
     if (!this.el) return;
 
     document.getElementById('sd-close').onclick = () => this.close();
-    document.getElementById('sd-duration').addEventListener('change', () => ShipDetail.refresh());
 
     document.getElementById('ship-info').addEventListener('click', (e) => {
       const card = e.target.closest('.ship-card');
@@ -451,21 +456,62 @@ const ShipDetail = {
   id: null,
   visible: false,
   t0: null,
+  dur: 0,
+
+  init() {
+    this.el = {
+      ship:   document.getElementById('sd-ship'),
+      voyage: document.getElementById('sd-voyage'),
+      status: document.getElementById('sd-status'),
+      dur:    document.getElementById('sd-duration'),
+      end:    document.getElementById('sd-endtime'),
+    };
+    this.el.dur.addEventListener('change', () => this.onDurationInput());
+    this.el.end.addEventListener('change', () => this.onEndTimeInput());
+  },
 
   async show(id) {
-    if (!this.visible) return; 
+    if (!this.visible) return;                      // 由 DetailPanel 保证
     this.id = id;
     const ship = State.ships.find(s => String(s.id) === String(id));
     this.t0 = parseTs(ship?.beg_work_tim);
-    document.getElementById('sd-ship').textContent   = ship?.ship_name || id;
-    document.getElementById('sd-voyage').textContent = ship?.voyage || '';
+    this.el.ship.textContent   = ship?.ship_name || id;
+    this.el.voyage.textContent = ship?.voyage || '';
 
     if (!State.shipProgNumLoaded) {                 // 首次 GET 全量
       const ships = await this._fetchAll();
       if (ships) State.setShipProgNum(ships);
     }
+    this.syncTimeInputs();
     this.refresh();
     Charts.resizeShipDetail('sd-chart');
+  },
+
+  /** 参考线起点：开工时刻 → 首个采样点 → 当前时间 */
+  startTs() {
+    return this.t0 ?? State.shipProgNum[this.id]?.[0]?.t ?? Date.now();
+  },
+
+  onDurationInput() {
+    this.setDur(Number(this.el.dur.value) || 0);
+  },
+
+  onEndTimeInput() {
+    const end = parseTs(this.el.end.value);
+    this.setDur(end && end > this.startTs() ? (end - this.startTs()) / 3600000 : 0);
+  },
+
+  setDur(hours) {
+    this.dur = Math.max(0, Math.round((Number(hours) || 0) * 10) / 10);
+    this.syncTimeInputs();
+    this.refresh();
+  },
+
+  syncTimeInputs() {
+    this.el.dur.value = this.dur > 0 ? this.dur : '';
+    this.el.end.value = this.dur > 0
+      ? toLocalInputValue(this.startTs() + this.dur * 3600000)
+      : '';
   },
 
   setVisible(v) { 
@@ -489,14 +535,11 @@ const ShipDetail = {
     const pts  = State.shipProgNum[this.id] || [];
     const last = pts[pts.length - 1];
     const plan = Number(ship?.i_plan_num || 0) + Number(ship?.e_plan_num || 0);
-    document.getElementById('sd-status').textContent = last
+    this.el.status.textContent = last
       ? `${pts.length}, ${last.i_done + last.e_done}${plan ? ' / ' + plan : ''}`
       : '暂无数据';
     Charts.renderShipDetail('sd-chart', {
-      points: pts,
-      plan,
-      t0: this.t0,
-      dur: Number(document.getElementById('sd-duration').value) || 0,
+      points: pts, plan, t0: this.t0, dur: this.dur,
     });
   },
 };
@@ -697,6 +740,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   Header.init();
   Ships.init();
   DetailPanel.init();
+  ShipDetail.init();
   Charts.init();
   State._initShipProgPct();
   await Config.load();

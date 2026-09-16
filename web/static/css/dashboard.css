@@ -673,14 +673,21 @@ main {
   margin-left: auto;
 }
 
+.sd-ref input + label { margin-left: 2rem; }
+
 .sd-ref input {
-  width: 5rem;
+  color-scheme: dark;
   background: transparent;
   color: inherit;
+  height: 2.1rem;
+  font-size: 1.3rem;
   border: 1px solid rgba(255,255,255,.3);
   border-radius: 0.4rem;
   padding: 0.2rem 0.6rem;
 }
+
+#sd-duration { width: 6rem; }
+#sd-endtime { width: 16rem; }
 
 .sd-close {
   background: none;
