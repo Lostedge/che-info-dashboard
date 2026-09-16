@@ -642,7 +642,7 @@ main {
   display: flex;
   align-items: baseline;
   gap: 1rem;
-  min-width: 0;
+  min-width: 16rem;
 }
 
 .sd-ship {
@@ -660,10 +660,30 @@ main {
   color: var(--c-soft);
 }
 
-.sd-status {
-  font-size: 1.2rem;
+.sd-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 20rem;
+  font-size: 1.4rem;
+  font-weight: 600;
   color: var(--c-soft);
+  font-variant-numeric: tabular-nums;
 }
+
+.sd-progress-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.sd-progress-pct {
+  letter-spacing: 0.02rem;
+  color: var(--c-text);              /* #7dd3fc  #4cc2ff */
+}
+
+.bar-total { background: linear-gradient(90deg, #38bdf8, #22d3ee); }
 
 .sd-ref {
   display: flex;

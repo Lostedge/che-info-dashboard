@@ -466,11 +466,13 @@ const ShipDetail = {
 
   init() {
     this.el = {
-      ship:   document.getElementById('sd-ship'),
-      voyage: document.getElementById('sd-voyage'),
-      status: document.getElementById('sd-status'),
-      dur:    document.getElementById('sd-duration'),
-      end:    document.getElementById('sd-endtime'),
+      ship:    document.getElementById('sd-ship'),
+      voyage:  document.getElementById('sd-voyage'),
+      progNum: document.getElementById('sd-progress-num'),
+      progPct: document.getElementById('sd-progress-pct'),
+      progBar: document.getElementById('sd-progress-bar'),
+      dur:     document.getElementById('sd-duration'),
+      end:     document.getElementById('sd-endtime'),
     };
     this.el.dur.addEventListener('change', () => this.onDurationInput());
     this.el.end.addEventListener('change', () => this.onEndTimeInput());
@@ -543,10 +545,16 @@ const ShipDetail = {
     const ship = State.ships.find(s => String(s.id) === String(this.id));
     const pts  = State.shipProgNum[this.id] || [];
     const last = pts[pts.length - 1];
+
+    const done = last ? last.i_done + last.e_done : 0;
     const plan = Number(ship?.i_plan_num || 0) + Number(ship?.e_plan_num || 0);
-    this.el.status.textContent = last
-      ? `${pts.length}, ${last.i_done + last.e_done}${plan ? ' / ' + plan : ''}`
-      : '暂无数据';
+    const pct  = toPct(done, plan);
+    this.el.progNum.textContent = last && plan
+      ? `${done}/${plan} (剩余 ${Math.max(0, plan - done)})` 
+      : '--';
+    this.el.progPct.textContent  = last && plan ? `${pct}%` : '';
+    this.el.progBar.style.width = `${pct}%`;
+
     Charts.renderShipDetail('sd-chart', {
       points: pts, plan, t0: this.t0, dur: this.dur,
     });
