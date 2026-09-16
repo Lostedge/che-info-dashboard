@@ -20,13 +20,13 @@ function escapeHtml(str) {
 const toPct = (done, plan) => (plan ? Math.min(100, Math.round((done / plan) * 100)) : 0);
 
 /** epoch ms → 'MM-DD HH:MM' */
-function fmtMMDDHHmm(ts) {
+function fmtTs(ts) {
   const d = new Date(ts), p = n => String(n).padStart(2, '0');
   return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
 /** epoch ms → 'YYYY-MM-DDTHH:MM'（datetime-local 的值，本地时间） */
-function toLocalInputValue(ts) {
+function fmtInput(ts) {
   const d = new Date(ts), p = n => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
@@ -371,8 +371,8 @@ const Ships = {
   },
 
   _fmt(raw) {
-    const m = String(raw || '').match(/(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
-    return m ? `${m[2]}-${m[3]} ${m[4]}:${m[5]}` : '--';
+    const ts = parseTs(raw);
+    return ts ? fmtTs(ts) : '--';
   }
 };
 
@@ -510,7 +510,7 @@ const ShipDetail = {
   syncTimeInputs() {
     this.el.dur.value = this.dur > 0 ? this.dur : '';
     this.el.end.value = this.dur > 0
-      ? toLocalInputValue(this.startTs() + this.dur * 3600000)
+      ? fmtInput(this.startTs() + this.dur * 3600000)
       : '';
   },
 

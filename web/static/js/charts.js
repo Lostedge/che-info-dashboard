@@ -57,7 +57,7 @@ function buildShipDetailData(points, plan, t0, dur) {
   const ref = times.map(t =>
     (hasRef && t >= start && t <= end) ? plan * ((t - start) / durMs) : null);
 
-  return { labels: times.map(fmtMMDDHHmm), actual, ref };
+  return { labels: times.map(fmtTs), actual, ref };
 }
 
 
