@@ -27,6 +27,7 @@ class SSEHandler(BaseHTTPRequestHandler):
     logger = logging.getLogger(__name__)
     on_client_connect = None
     ship_history_getter = None
+    qc_move_getter = None
     max_clients: int = 20
     auth: dict = {}
 
@@ -65,6 +66,8 @@ class SSEHandler(BaseHTTPRequestHandler):
                 self._handle_sse()
             elif path == '/api/ship_history':
                 self._handle_api_history()
+            elif path == '/api/qc_move':
+                self._handle_api_qc_move()
             elif path.startswith('/'):
                 self._handle_static()
             else:
@@ -183,6 +186,21 @@ class SSEHandler(BaseHTTPRequestHandler):
                 data = {'ships': {}} if not voyage else {'id': voyage, 'points': []}
             status, body = 200, json.dumps(data, ensure_ascii=False).encode('utf-8')
         self._send_bytes(status, 'application/json; charset=utf-8', body)
+
+    def _handle_api_qc_move(self):
+        """GET /api/qc_move → [{"id","hour","moves"}, ...] 全量小时桶"""
+        getter = self.__class__.qc_move_getter
+        if not getter:
+            self._send_bytes(503, 'application/json; charset=utf-8',
+                             b'{"error": "qc_move unavailable"}')
+            return
+        try:
+            data = getter()
+        except Exception as e:
+            self.logger.error(f"岸桥吊数读取失败: {e}", exc_info=True)
+            data = []
+        self._send_bytes(200, 'application/json; charset=utf-8',
+                         json.dumps(data, ensure_ascii=False).encode('utf-8'))
 
     def _get_static_dir(self):
         if getattr(sys, 'frozen', False):
