@@ -73,8 +73,9 @@ const State = {
   ships: [],
   shipProgPct: {},          // { [id]: [{ t, iPct, ePct }] }      百分比历史，用于 sparkline
   shipProgNum: {},          // { [id]: [{ t, i_done, e_done }] }  详细箱量历史，用于 shipDetail
-  qcMoves: {},              // { [qcId]: [{ hour: 'HH:00', moves: n }] }  吊数（后端接口未实现）
+  qcMoves: [],              // [{ id, hour: 'HH:00', moves: n }]  岸桥 move 数
   shipProgNumLoaded: false, // 是否已 GET 详细箱量历史
+  qcMovesLoaded: false,     // 是否已 GET 岸桥 move 数
   statsMode: 'shift',       // 'day'=当日 / 'shift'=当班（默认当班，由后端 stats_mode 推送更新）
 
   // 船舶进度历史配置
@@ -190,6 +191,16 @@ const State = {
       const last = arr[arr.length - 1];
       if (last && Math.abs(last.t - t) < 60_000) { last.i_done = i; last.e_done = e; }
       else arr.push({ t, i_done: i, e_done: e });
+    }
+  },
+
+  /** 追加记录岸桥 move 数 */
+  pushQcMove(list) {
+    for (const r of list || []) {
+      if (r.id == null || !r.hour) continue;
+      const hit = this.qcMoves.find(p => String(p.id) === String(r.id) && p.hour === r.hour);
+      if (hit) hit.moves = Number(r.moves) || 0;
+      else this.qcMoves.push({ id: r.id, hour: r.hour, moves: Number(r.moves) || 0 });
     }
   },
 };
@@ -444,6 +455,7 @@ const DetailPanel = {
   /** 断线重连 */
   async onReconnect() {
     State.shipProgNumLoaded = false;
+    State.qcMovesLoaded = false;
     if (this.mode === 'ship') await ShipDetail.show(ShipDetail.id);
     if (this.mode === 'qc')   await QcDetail.show(QcDetail.id);
   },
@@ -495,6 +507,7 @@ const ShipDetail = {
     this.syncTimeInputs();
     this.refresh();
     Charts.resizeShipDetail('sd-chart');
+    Charts.resizeQcHeat('qd-chart');
   },
 
   /** 参考线起点：开工时刻 → 首个采样点 → 当前时间 */
@@ -569,6 +582,10 @@ const QcDetail = {
 
   async show(id) {
     this.id = id;
+    if (!State.qcMovesLoaded) {                     // 首次打开 GET 全量，之后靠 SSE 增量
+      const rows = await this._fetchAll();
+      if (rows) { State.pushQcMove(rows); State.qcMovesLoaded = true; }
+    }
     this.refresh();
     Charts.resizeQcHeat('qd-chart');
   },
@@ -580,11 +597,18 @@ const QcDetail = {
 
   refresh() { if (this.visible && this.id != null) this.render(); },
 
+  async _fetchAll() {
+    try {
+      const res = await fetch('api/qc_move');
+      return res.ok ? await res.json() : null;      // 数组 [{id, hour, moves}]
+    } catch { return null; }
+  },
+
   render() {
     const yLabels = filterByConfig(State.getByType('1'), 'qc').map(d => d.id);  // 纵轴 = 岸桥编号
     Charts.syncQcLegend();
     Charts.renderQcHeat('qd-chart', {
-      rows: State.qcMoves?.[this.id] ?? [],   // TODO: 吊数接口未实现，先恒为空
+      rows: State.qcMoves,
       yLabels,
     });
   },
@@ -762,6 +786,11 @@ const SSEClient = {
       case 'stats_mode':
         State.statsMode = msg.data?.mode || 'shift';
         Charts.updateDeviceTitles();
+        break;
+
+      case 'qc_move':
+        State.pushQcMove(data);
+        QcDetail.refresh();
         break;
     }
   },
