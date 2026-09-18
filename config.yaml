@@ -74,6 +74,8 @@ scheduler:
     merge_foreign_ships: true # 是否合并外贸船数据
   ship_history:
     retention_hours: 24       # 船舶作业历史保留时长（小时）
+  qc_move:
+    hours: 24                 # 前端展示窗口（桶数），需与 web/static/config.json 的 qc_move_heat.hours 一致
   test:
     enabled: false
     test_datetime: "2024-07-29 23:30:00"

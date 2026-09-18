@@ -45,6 +45,11 @@ class Scheduler:
         # 是否合并外贸船数据
         self.merge_foreign_ships = config.get('ship', {}).get('merge_foreign_ships', True)
 
+        # 岸桥 move 数
+        qc_move_cfg = config.get('qc_move', {})
+        self.qc_move_hours = qc_move_cfg.get('hours', 24)
+        self._qc_move: dict[str, dict[str, int]] = {}   # {qc_id: {'YYYY-MM-DD HH:00': moves}}
+
         # 测试模式
         test_cfg = config.get('test', {})
         self.test_datetime = None
@@ -56,6 +61,7 @@ class Scheduler:
             self._refresh_shift_comp()
         self._fetch_info()
         self._fetch_stats()
+        self._fetch_qc_move(self.qc_move_hours)
 
         self._scheduler.add_job(
             self._fetch_info,
@@ -78,6 +84,12 @@ class Scheduler:
                     id=f'refresh_shift_{h:02d}{m:02d}',
                     name=f'刷新换班补偿（{h:02d}:{m:02d}）',
                 )
+        self._scheduler.add_job(
+            self._fetch_qc_move,
+            CronTrigger(minute=3),
+            id='fetch_qc_move',
+            name='岸桥 move 数（每小时:03）',
+        )
         self._scheduler.start()
 
         self.logger.info(f"✅ 定时调度器已启动: {self.intervals['info']}/{self.intervals['stats']}+{self.delay}min")
@@ -261,6 +273,44 @@ class Scheduler:
             vid = str(voyage_id)
             return {'id': vid, 'points': list(self._ship_history.get(vid, []))}
         return {'ships': {vid: list(pts) for vid, pts in self._ship_history.items()}}
+
+    def _fetch_qc_move(self, span: int = 1):
+        """岸桥 move 数：抓已关闭的整点小时桶；span=1 只抓刚结束的小时，预热时传 hours"""
+        now   = self.test_datetime or datetime.now()
+        hour0 = now.replace(minute=0, second=0, microsecond=0)
+        win_start = hour0 - timedelta(hours=span)
+
+        executor = QueryExecutor()
+        rows = self._try_query('QCMOVE', executor.get_qc_move, win_start, hour0)
+        if rows is None:
+            return
+
+        for r in rows:                                      # 存内存用 bucket（带日期）
+            self._qc_move.setdefault(r['id'], {})[r['bucket']] = int(r['moves'])
+
+        self._prune_qc_move(now)
+
+        pushed = [{'id': r['id'], 'hour': r['bucket'][11:16], 'moves': int(r['moves'])}
+                  for r in rows]                            # 只推本次查到的 1h（预热时为全量）
+        if pushed:
+            self._push('QCMOVE', 'qc_move', pushed)
+
+    def _prune_qc_move(self, now: datetime):
+        """只保留最近 qc_move_hours 个已关闭整点桶"""
+        hour0 = now.replace(minute=0, second=0, microsecond=0)
+        keep = {(hour0 - timedelta(hours=i)).strftime('%Y-%m-%d %H:00')
+                for i in range(1, self.qc_move_hours + 1)}
+        for buckets in self._qc_move.values():
+            for k in [k for k in buckets if k not in keep]:
+                del buckets[k]
+
+    def get_qc_move(self) -> list[dict]:
+        """返回 [{id, hour, moves}]，供 SSE / GET 使用"""
+        out = []
+        for qc, buckets in self._qc_move.items():
+            for bucket, moves in sorted(buckets.items()):
+                out.append({'id': qc, 'hour': bucket[11:16], 'moves': moves})
+        return out
 
     def _get_period_bounds(self, interval_minutes: int, now: datetime) -> tuple:
         """返回对齐到 interval 边界的时间窗口"""

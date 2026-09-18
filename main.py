@@ -92,7 +92,7 @@ def main():
 
         # 推送 DB 缓存数据
         for push_type, data in scheduler.get_cached_data().items():
-            if data:
+            if data and push_type != 'qc_move':
                 handler.send_to({'type': push_type, 'data': data, 'init': True})
 
     SSEHandler.on_client_connect = on_connect

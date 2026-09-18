@@ -107,3 +107,10 @@ class QueryExecutor:
         voyages = ', '.join(f':v{i}' for i in range(len(voyage_nos)))
         params = {f'v{i}': v for i, v in enumerate(voyage_nos)}
         return self.execute(queries.SHIP_PROGRESS.format(voyages=voyages), params)
+
+    def get_qc_move(self, win_start, win_end) -> Optional[list[dict]]:
+        """获取岸桥 move 数：返回 [win_start, win_end) 内按 (岸桥, 整点) 的 move 数"""
+        return self.execute(queries.QC_MOVE_HOUR, {
+            'win_start': win_start,
+            'win_end':   win_end,
+        })

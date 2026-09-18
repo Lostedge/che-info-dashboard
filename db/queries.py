@@ -113,6 +113,22 @@ SHIP_PROGRESS = """
     GROUP BY s.VOYAGE_NO
 """
 
+# 岸桥 move 数：按整点小时桶统计
+QC_MOVE_HOUR = """
+    SELECT
+        SUBSTR(SHIP_MACH_NO, -3)                                       AS id,
+        TO_CHAR(TRUNC(WORK_TIM, 'HH24'), 'YYYY-MM-DD HH24:MI')         AS bucket,
+        COUNT(CASE WHEN NVL(WORK_QUEUE_NO, ' ') NOT LIKE '%TW%' THEN 1 END)
+      + COUNT(DISTINCT CASE WHEN WORK_QUEUE_NO LIKE '%TW%'
+                            THEN WORK_QUEUE_NO || CHR(1) || SEQ_NO END)
+                                                                       AS moves
+    FROM JZCT_TOS_HIS.SHIP_COMMAND
+    WHERE WORK_TIM >= :win_start
+      AND WORK_TIM <  :win_end
+      AND SHIP_MACH_NO IN ('AQ101','AQ102','AQ103','AQ104','AQ105','AQ106')
+    GROUP BY SUBSTR(SHIP_MACH_NO, -3), TRUNC(WORK_TIM, 'HH24')
+    ORDER BY SUBSTR(SHIP_MACH_NO, -3), TRUNC(WORK_TIM, 'HH24')
+"""
 
 # ============================================================
 # 当班统计：换班检测
