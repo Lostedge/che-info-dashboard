@@ -259,6 +259,8 @@ function shipDetailDatasets(built, c, refLabel) {
 
 /** 岸桥色块图 options */
 function qcHeatOptions(c, cfg, xLabels, yLabels) {
+  /** 色块图单元格最大高度（px） */
+  const QC_HEAT_MAX_CELL_H = 40;
   return {
     responsive: true, maintainAspectRatio: false, animation: false,
     plugins: {
@@ -273,7 +275,7 @@ function qcHeatOptions(c, cfg, xLabels, yLabels) {
         },
       },
       datalabels: {
-        font: { size: 11, weight: 'bold' },
+        font: { size: 14, weight: 'bold' },
         formatter: v => (v.v ?? 0) > 0 ? v.v : '',
         display: ctx => (ctx.dataset.data[ctx.dataIndex]?.v ?? 0) > 0,
         // 深色格用浅字、浅色格用深字
@@ -294,8 +296,12 @@ function qcHeatOptions(c, cfg, xLabels, yLabels) {
         borderWidth: 2,
         borderColor: '#0d1117',                 // 用底色做格间距
         borderRadius: 3,
-        width:  ({ chart }) => ((chart.chartArea?.width  ?? 0) / xLabels.length) - 2,
-        height: ({ chart }) => ((chart.chartArea?.height ?? 0) / yLabels.length) - 2,
+        width:  ({ chart }) => ((chart.chartArea?.width  ?? 0) /
+                  Math.max(1, chart.options.scales.x.labels?.length || 0)) - 2,
+        height: ({ chart }) => Math.max(0,
+                  Math.min((chart.chartArea?.height ?? 0) /
+                  Math.max(1, chart.options.scales.y.labels?.length || 0),
+                  QC_HEAT_MAX_CELL_H) - 2),
       },
     },
   };
@@ -444,7 +450,6 @@ const Charts = {
 
     let chart = this.qcHeatCharts[canvasId];
     if (chart) {
-      if (!yIds.length) return chart;
       chart.options.scales.x.labels = xLabels;
       chart.options.scales.y.labels = yIds;
       chart.data.datasets[0].data = cells;

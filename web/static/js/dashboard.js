@@ -63,6 +63,18 @@ function filterByConfig(devices, type) {
   return ids ? devices.filter(d => ids.includes(d.id)) : devices;
 }
 
+/** 取属于该船的岸桥 */
+function qcsOfShip(ship, list) {
+  if (!ship) return [];
+  const name = String(ship.ship_name ?? '');
+  return (list || []).filter(d => {
+    const n = String(d.ship_name ?? '').trim();
+    return n !== '' && (n === name
+      || n === name + '外'          // 兜底：后端尚未归并时的外贸船
+      || n === String(ship.id));    // ship_name 取到航次号的情况
+  });
+}
+
 
 /* ============================================================
    State
@@ -429,14 +441,14 @@ const DetailPanel = {
   async openShip(id) {
     this.mode = 'ship';
     this._show({ ship: true, qc: true });
-    await Promise.all([ShipDetail.show(id), QcDetail.show(id)]);
+    await Promise.all([ShipDetail.show(id), QcDetail.show(id, 'ship')]);
   },
 
   /** 从 qc 面板单独打开：仅 qc */
   async openQc(id) {
     this.mode = 'qc';
     this._show({ ship: false, qc: true });
-    await QcDetail.show(id);
+    await QcDetail.show(id, 'all');
   },
 
   close() {
@@ -456,8 +468,11 @@ const DetailPanel = {
   async onReconnect() {
     State.shipProgNumLoaded = false;
     State.qcMovesLoaded = false;
-    if (this.mode === 'ship') await ShipDetail.show(ShipDetail.id);
-    if (this.mode === 'qc')   await QcDetail.show(QcDetail.id);
+    if (this.mode === 'ship') {
+      await ShipDetail.show(ShipDetail.id);
+      await QcDetail.show(QcDetail.id, QcDetail.scope);
+    }
+    if (this.mode === 'qc') await QcDetail.show(QcDetail.id, QcDetail.scope);
   },
 
   _show({ ship, qc }) {
@@ -578,10 +593,12 @@ const ShipDetail = {
 
 const QcDetail = {
   id: null,
+  scope: 'ship',        // 'ship' 只显示该航次的岸桥；'all' 显示全部岸桥
   visible: false,
 
-  async show(id) {
+  async show(id, scope = 'ship') {
     this.id = id;
+    this.scope = scope;
     if (!State.qcMovesLoaded) {                     // 首次打开 GET 全量，之后靠 SSE 增量
       const rows = await this._fetchAll();
       if (rows) { State.pushQcMove(rows); State.qcMovesLoaded = true; }
@@ -604,8 +621,22 @@ const QcDetail = {
     } catch { return null; }
   },
 
+  /** 当前上下文要显示的岸桥编号 */
+  qcIds() {
+    const qcs = filterByConfig(State.getByType('1'), 'qc');
+    if (this.scope !== 'ship') return qcs.map(d => d.id);
+    const ship = State.ships.find(s => String(s.id) === String(this.id));
+    return qcsOfShip(ship, qcs).map(d => d.id);
+  },
+
   render() {
-    const yLabels = filterByConfig(State.getByType('1'), 'qc').map(d => d.id);  // 纵轴 = 岸桥编号
+    const yLabels = this.qcIds();                    // 纵轴 = 当前船的岸桥
+    const empty   = yLabels.length === 0;
+
+    document.getElementById('qd-empty')?.classList.toggle('hidden', !empty);
+    document.querySelector('#qc-detail .qd-heat-wrap')?.classList.toggle('hidden', empty);
+    if (empty) { Charts.destroyQcHeat('qd-chart'); return; }   // 清掉上一艘的残留
+
     Charts.syncQcLegend();
     Charts.renderQcHeat('qd-chart', {
       rows: State.qcMoves,
