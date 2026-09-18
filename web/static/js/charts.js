@@ -61,6 +61,49 @@ function buildShipDetailData(points, plan, t0, dur) {
 }
 
 
+/**
+ * 构建岸桥色块图点集（扁平行 → 矩阵）
+ * @param rows    [{ id, hour, moves }]，hour 与 xLabels 同格式（'HH:00'）
+ * @param xLabels 横轴时段标签，升序
+ * @param yLabels 纵轴岸桥编号
+ * @returns {Array<{ x: string, y: string, v: number|null }>} 缺格 v = null
+ */
+function buildQcHeatData(rows, xLabels, yLabels) {
+  const xi = new Map(xLabels.map((h, i) => [h, i]));
+  const yi = new Map(yLabels.map((q, i) => [q, i]));
+  const got = new Map();
+  for (const r of rows || []) {
+    const x = xi.get(r.hour), y = yi.get(String(r.id));
+    if (x == null || y == null) continue;
+    got.set(`${x},${y}`, Number(r.moves) || 0);
+  }
+  const cells = [];
+  for (let x = 0; x < xLabels.length; x++) {
+    for (let y = 0; y < yLabels.length; y++) {
+      const k = `${x},${y}`;
+      cells.push({ x: xLabels[x], y: yLabels[y], v: got.has(k) ? got.get(k) : null });
+    }
+  }
+  return cells;
+}
+
+
+/**
+ * 构建岸桥色块图横轴标签：最近 hours 个整点
+ * @param hours 时段数（含当前小时）
+ * @param now   基准时刻 epoch ms
+ * @returns {string[]} 'HH:00'，升序
+ */
+function buildQcHeatLabels(hours, now = Date.now()) {
+  const d = new Date(now);
+  d.setMinutes(0, 0, 0);                        // 对齐到整点
+  return Array.from({ length: hours }, (_, i) => {
+    const t = new Date(d.getTime() - (hours - 1 - i) * 3600000);
+    return `${String(t.getHours()).padStart(2, '0')}:00`;
+  });
+}
+
+
 /* ============================================================
    颜色与配置工厂
    ============================================================ */
@@ -78,6 +121,22 @@ function chartColors() {
     dim:      s.getPropertyValue('--c-dim').trim() || '#8b949e',
     grid:     s.getPropertyValue('--c-border').trim() || '#30363d',
   };
+}
+
+/**
+ * move 值 → 色阶颜色（配置分档）
+ * @param v   吊数；null 表示该时段无数据
+ * @param cfg config.json 的 qc_move_heat（breaks / colors）
+ * @returns {{ color: string, step: number }} step 为档位序号，-1 = 无数据
+ */
+function qcHeatScale(v, cfg) {
+  const breaks = cfg?.breaks ?? [];
+  const colors = cfg?.colors ?? ['#2563eb'];
+  if (v == null) return { color: 'rgba(72,79,88,.35)', step: -1 };
+
+  let i = 0;
+  while (i < breaks.length - 1 && v >= breaks[i + 1]) i++;
+  return { color: colors[i] ?? colors[colors.length - 1], step: i };
 }
 
 /** 设备作业量柱状图 options */
@@ -175,14 +234,14 @@ function shipDetailOptions(c) {
   return {
     responsive: true, maintainAspectRatio: false, animation: false,
     plugins: {
-      legend: { labels: { color: c.soft, font: { size: 13 }, boxWidth: 14, boxHeight: 14 } },
+      legend: { labels: { color: c.soft, font: { size: 13 }, boxWidth: 30, boxHeight: 14 } },
       datalabels: { display: false },          // 关掉全局注册的数据标签
     },
     scales: {
       x: { ticks: { color: c.soft, maxTicksLimit: 10, autoSkip: true },
            grid: { color: c.grid } },
       y: { beginAtZero: true, ticks: { color: c.soft }, grid: { color: c.grid },
-           title: { display: true, text: '累计作业箱量', color: c.dim } },
+           title: { display: true, text: '累计作业箱量', color: c.soft } },
     },
   };
 }
@@ -198,6 +257,50 @@ function shipDetailDatasets(built, c, refLabel) {
   ];
 }
 
+/** 岸桥色块图 options */
+function qcHeatOptions(c, cfg, xLabels, yLabels) {
+  return {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        displayColors: false,
+        callbacks: {
+          title: it => `${it[0].raw.y} 岸桥`,
+          label: it => it.raw.v == null
+            ? `${it.raw.x}　无数据`
+            : `${it.raw.x}　${it.raw.v} ${cfg?.unit || ''}`,
+        },
+      },
+      datalabels: {
+        font: { size: 11, weight: 'bold' },
+        formatter: v => (v.v ?? 0) > 0 ? v.v : '',
+        display: ctx => (ctx.dataset.data[ctx.dataIndex]?.v ?? 0) > 0,
+        // 深色格用浅字、浅色格用深字
+        color: ctx => (qcHeatScale(ctx.dataset.data[ctx.dataIndex].v, cfg).step >= (cfg?.darkFrom ?? 3)
+          ? '#0d1117' : '#e6edf3'),
+      },
+    },
+    scales: {
+      x: { type: 'category', offset: true, labels: xLabels,
+           ticks: { color: c.soft, maxRotation: 0, autoSkip: true },
+           grid: { display: false } },
+      y: { type: 'category', offset: true, labels: yLabels, reverse: true,   // reverse 与插件默认一致
+           ticks: { color: c.text, font: { size: 13, weight: 'bold' } },
+           grid: { display: false } },
+    },
+    elements: {
+      matrix: {
+        borderWidth: 2,
+        borderColor: '#0d1117',                 // 用底色做格间距
+        borderRadius: 3,
+        width:  ({ chart }) => ((chart.chartArea?.width  ?? 0) / xLabels.length) - 2,
+        height: ({ chart }) => ((chart.chartArea?.height ?? 0) / yLabels.length) - 2,
+      },
+    },
+  };
+}
+
 
 /* ============================================================
    Charts - 图表实例管理
@@ -206,6 +309,7 @@ function shipDetailDatasets(built, c, refLabel) {
 const Charts = {
   deviceCharts: {},      // 设备作业量柱状图（chart-rtg/qc/fl）
   shipDetailCharts: {},  // 船舶详情折线图（sd-chart）
+  qcHeatCharts: {},      // 岸桥 move 色块图（qd-chart）
 
   init() {
     Chart.register(ChartDataLabels);
@@ -329,5 +433,57 @@ const Charts = {
   destroyShipDetail(canvasId) {
     const chart = this.shipDetailCharts[canvasId];
     if (chart) { chart.destroy(); delete this.shipDetailCharts[canvasId]; }
+  },
+
+  /** 岸桥色块图：有实例则原位更新，否则创建 */
+  renderQcHeat(canvasId, { rows, yLabels }) {
+    const cfg = Config.data?.qc_move_heat ?? {};
+    const xLabels = buildQcHeatLabels(cfg.hours ?? 12);
+    const yIds    = yLabels ?? [];
+    const cells   = buildQcHeatData(rows, xLabels, yIds);
+
+    let chart = this.qcHeatCharts[canvasId];
+    if (chart) {
+      if (!yIds.length) return chart;
+      chart.options.scales.x.labels = xLabels;
+      chart.options.scales.y.labels = yIds;
+      chart.data.datasets[0].data = cells;
+      chart.data.datasets[0].backgroundColor = d => qcHeatScale(d.raw.v, cfg).color;
+      chart.update('none');
+      return chart;
+    }
+
+    const canvas = document.getElementById(canvasId);
+    if (!canvas || !yIds.length) return null;
+    const cc = chartColors();
+    chart = new Chart(canvas.getContext('2d'), {
+      type: 'matrix',
+      data: {
+        datasets: [{
+          data: cells,
+          backgroundColor: d => qcHeatScale(d.raw.v, cfg).color,
+        }],
+      },
+      options: qcHeatOptions(cc, cfg, xLabels, yIds),
+    });
+    this.qcHeatCharts[canvasId] = chart;
+    return chart;
+  },
+
+  resizeQcHeat(canvasId) { this.qcHeatCharts[canvasId]?.resize(); },
+
+  destroyQcHeat(canvasId) {
+    const chart = this.qcHeatCharts[canvasId];
+    if (chart) { chart.destroy(); delete this.qcHeatCharts[canvasId]; }
+  },
+
+  /** 生成色阶条渐变（配置驱动） */
+  syncQcLegend() {
+    const cfg = Config.data?.qc_move_heat;
+    const bar = document.getElementById('qd-legend-bar');
+    if (!cfg || !bar) return;
+    bar.style.background = `linear-gradient(90deg, ${(cfg.colors || []).join(',')})`;
+    const mx = document.getElementById('qd-legend-max');
+    if (mx) mx.textContent = `${(cfg.breaks || []).at(-1)}+`;
   },
 };

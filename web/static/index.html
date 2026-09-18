@@ -68,7 +68,14 @@
           <div class="detail-head qd-head">
             <span class="sd-title" id="qd-title">岸桥作业</span>
           </div>
-          <div class="qd-body"><!-- TODO: 数据后续添加 --></div>
+          <div class="qd-body">
+            <div class="qd-legend">
+              <span class="qd-legend-label">0</span>
+              <span class="qd-legend-bar" id="qd-legend-bar"></span>
+              <span class="qd-legend-label" id="qd-legend-max">30+</span>
+            </div>
+            <div class="qd-heat-wrap"><canvas id="qd-chart"></canvas></div>
+          </div>
         </div>
       </div>
       <!-- 作业量统计图表 -->
@@ -132,6 +139,7 @@
 
   <!-- ========== SCRIPTS ========== -->
   <script src="libs/chart.umd.min.js"></script>
+  <script src="libs/chartjs-chart-matrix.min.js"></script>
   <script src="libs/chartjs-plugin-datalabels.min.js"></script>
   <script src="js/charts.js"></script>
   <script src="js/dashboard.js"></script>

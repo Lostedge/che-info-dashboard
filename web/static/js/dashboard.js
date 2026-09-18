@@ -73,6 +73,7 @@ const State = {
   ships: [],
   shipProgPct: {},          // { [id]: [{ t, iPct, ePct }] }      百分比历史，用于 sparkline
   shipProgNum: {},          // { [id]: [{ t, i_done, e_done }] }  详细箱量历史，用于 shipDetail
+  qcMoves: {},              // { [qcId]: [{ hour: 'HH:00', moves: n }] }  吊数（后端接口未实现）
   shipProgNumLoaded: false, // 是否已 GET 详细箱量历史
   statsMode: 'shift',       // 'day'=当日 / 'shift'=当班（默认当班，由后端 stats_mode 推送更新）
 
@@ -416,8 +417,8 @@ const DetailPanel = {
   /** 从船舶卡片打开：ship + qc */
   async openShip(id) {
     this.mode = 'ship';
-    this._show({ ship: true, qc: false });
-    await ShipDetail.show(id);
+    this._show({ ship: true, qc: true });
+    await Promise.all([ShipDetail.show(id), QcDetail.show(id)]);
   },
 
   /** 从 qc 面板单独打开：仅 qc */
@@ -565,10 +566,28 @@ const ShipDetail = {
 const QcDetail = {
   id: null,
   visible: false,
-  async show(id) { this.id = id; /* TODO: 数据后续添加 */ this.refresh(); },
-  setVisible(v) { this.visible = v; if (!v) this.id = null; }, 
+
+  async show(id) {
+    this.id = id;
+    this.refresh();
+    Charts.resizeQcHeat('qd-chart');
+  },
+
+  setVisible(v) {
+    this.visible = v;
+    if (!v) { this.id = null; Charts.destroyQcHeat('qd-chart'); }   // 隐藏即销毁，避免 0 尺寸画布
+  },
+
   refresh() { if (this.visible && this.id != null) this.render(); },
-  render() { /* TODO */ },
+
+  render() {
+    const yLabels = filterByConfig(State.getByType('1'), 'qc').map(d => d.id);  // 纵轴 = 岸桥编号
+    Charts.syncQcLegend();
+    Charts.renderQcHeat('qd-chart', {
+      rows: State.qcMoves?.[this.id] ?? [],   // TODO: 吊数接口未实现，先恒为空
+      yLabels,
+    });
+  },
 };
 
 

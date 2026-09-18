@@ -613,7 +613,7 @@ main {
 }
 
 .detail-slot.hidden { display: none; }
-.detail-ship { flex: 2; }
+.detail-ship { flex: 3; }
 .detail-qc   { flex: 1; }
 
 .detail-ship .sd-chart-wrap {
@@ -719,6 +719,43 @@ main {
 
 .sd-chart-wrap  {
   padding: 0 1.4rem 1.4rem 1.4rem;
+}
+
+/* 岸桥详情色块图 */
+.qd-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: 0;
+  padding: 0 1.4rem 1.4rem 1.4rem;
+}
+
+.qd-legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.8rem;
+  font-size: 1.2rem;
+  color: var(--c-dim);
+}
+
+.qd-legend-bar {
+  width: 16rem;
+  height: 0.8rem;
+  border-radius: 0.4rem;
+  background: var(--c-track);        /* 由 syncQcLegend 覆盖为渐变 */
+}
+
+.qd-heat-wrap {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.qd-heat-wrap canvas {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 /* ============================================================

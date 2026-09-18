@@ -28,5 +28,12 @@
     "renderPoints": 48,
     "maxShips": 10,
     "ttlHours": 24
+  },
+
+  "qc_move_heat": {
+    "hours": 24,
+    "breaks": [0, 8, 16, 22, 30],
+    "colors": ["#1b2431", "#1e3a8a", "#2563eb", "#38bdf8", "#7dd3fc"],
+    "unit": "move"
   }
 }
