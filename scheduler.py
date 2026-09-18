@@ -139,8 +139,11 @@ class Scheduler:
             ('QC', executor.get_qc_info, 'qc_info'),
         ]:
             data = self._try_query(label, fetcher)
-            if data is not None:
-                self._push(label, push_type, data)
+            if data is None:
+                continue
+            if push_type == 'qc_info':
+                self._normalize_qc_ship(data)
+            self._push(label, push_type, data)
         
         self._fetch_ship(executor)
 
@@ -332,6 +335,14 @@ class Scheduler:
     def _foreign_base(name: str):
         """外贸船名去掉末尾的“外”后缀"""
         return name[:-1] if name.endswith('外') else None
+
+    @classmethod
+    def _normalize_qc_ship(cls, rows: list):
+        """岸桥的 ship_name 并入主船名（去尾部“外”），便于前端与船舶卡片直接匹配"""
+        for r in rows:
+            n = (r.get('ship_name') or '').strip()
+            if n:
+                r['ship_name'] = cls._foreign_base(n) or n
 
     def _build_aliases(self, ships: list) -> dict:
         """外贸船 id -> 主船 id；不合并时返回 {}"""
