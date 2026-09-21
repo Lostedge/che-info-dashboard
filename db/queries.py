@@ -114,20 +114,36 @@ SHIP_PROGRESS = """
 """
 
 # 岸桥 move 数：按整点小时桶统计
+# 双吊 = 相邻两行（同一岸桥，按 WORK_TIM 排序）间隔 <30s 且同车号且都是 20 尺，合并计 1 move；其余每行计 1
+# 预读窗口必须 >= 下面的 30s 阈值，否则窗口首行会被误判为新 move
 QC_MOVE_HOUR = """
-    SELECT
-        SUBSTR(SHIP_MACH_NO, -3)                                       AS id,
-        TO_CHAR(TRUNC(WORK_TIM, 'HH24'), 'YYYY-MM-DD HH24:MI')         AS bucket,
-        COUNT(CASE WHEN NVL(WORK_QUEUE_NO, ' ') NOT LIKE '%TW%' THEN 1 END)
-      + COUNT(DISTINCT CASE WHEN WORK_QUEUE_NO LIKE '%TW%'
-                            THEN WORK_QUEUE_NO || CHR(1) || SEQ_NO END)
-                                                                       AS moves
-    FROM JZCT_TOS_HIS.SHIP_COMMAND
-    WHERE WORK_TIM >= :win_start
-      AND WORK_TIM <  :win_end
-      AND SHIP_MACH_NO IN ('AQ101','AQ102','AQ103','AQ104','AQ105','AQ106')
-    GROUP BY SUBSTR(SHIP_MACH_NO, -3), TRUNC(WORK_TIM, 'HH24')
-    ORDER BY SUBSTR(SHIP_MACH_NO, -3), TRUNC(WORK_TIM, 'HH24')
+    SELECT id, bucket, SUM(is_new) AS moves
+    FROM (
+        SELECT SUBSTR(SHIP_MACH_NO, -3)                                AS id,
+               TO_CHAR(TRUNC(WORK_TIM, 'HH24'), 'YYYY-MM-DD HH24:MI')  AS bucket,
+               CASE WHEN prev_tim IS NULL
+                      OR (WORK_TIM - prev_tim) * 86400 >= 30           -- 间隔 ≥30s → 新 move
+                      OR NVL(TRUCK_NO, '~') <> NVL(prev_trk, '~')      -- 车号不同 → 新 move
+                      OR CNTR_SIZ_COD <> '20'                          -- 非双 20 → 新 move
+                      OR prev_siz <> '20'
+                    THEN 1 ELSE 0 END                                  AS is_new
+        FROM (
+            SELECT SHIP_MACH_NO, WORK_TIM, TRUCK_NO, CNTR_SIZ_COD,
+                   LAG(WORK_TIM)     OVER (PARTITION BY SHIP_MACH_NO
+                                           ORDER BY WORK_TIM, TRUCK_NO, CNTR) AS prev_tim,
+                   LAG(TRUCK_NO)     OVER (PARTITION BY SHIP_MACH_NO
+                                           ORDER BY WORK_TIM, TRUCK_NO, CNTR) AS prev_trk,
+                   LAG(CNTR_SIZ_COD) OVER (PARTITION BY SHIP_MACH_NO
+                                           ORDER BY WORK_TIM, TRUCK_NO, CNTR) AS prev_siz
+            FROM JZCT_TOS_HIS.SHIP_COMMAND
+            WHERE WORK_TIM >= :win_start - INTERVAL '1' MINUTE            -- 预读，仅供 LAG
+              AND WORK_TIM <  :win_end
+              AND SHIP_MACH_NO IN ('AQ101','AQ102','AQ103','AQ104','AQ105','AQ106')
+        )
+        WHERE WORK_TIM >= :win_start                                      -- 只统计目标窗口
+    )
+    GROUP BY id, bucket
+    ORDER BY id, bucket
 """
 
 # ============================================================
