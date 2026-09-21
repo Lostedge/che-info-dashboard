@@ -44,6 +44,7 @@ class Scheduler:
 
         # 是否合并外贸船数据
         self.merge_foreign_ships = config.get('ship', {}).get('merge_foreign_ships', True)
+        self._ship_aliases: dict = {}      # 外贸船航次 → 主船航次，含刚离港但主船仍在的旧映射
 
         # 岸桥 move 数
         qc_move_cfg = config.get('qc_move', {})
@@ -197,7 +198,7 @@ class Scheduler:
         if ships is None:
             return
 
-        aliases = self._build_aliases(ships)                    # 构建外贸船→主船映射，关闭时 aliases 为空，下面过滤/合并自动退化
+        aliases = self._refresh_ship_aliases(ships)                    # 构建外贸船→主船映射，关闭时 aliases 为空，下面过滤/合并自动退化
         main_ships = [s for s in ships if s['id'] not in aliases] 
         self._push('SHIP', 'ship_info', main_ships)
 
@@ -377,6 +378,18 @@ class Scheduler:
                     target[f] = (target.get(f) or 0) + (p.get(f) or 0)
                 continue
             keep.append(p)
+        return keep
+
+    def _refresh_ship_aliases(self, ships: list) -> dict:
+        """刷新外贸船别名映射：旧映射中主船仍在列表的予以保留
+        （外贸船先离港时，其 move 仍能归属到主船）"""
+        if not self.merge_foreign_ships:
+            self._ship_aliases = {}
+            return {}
+        ids = {s['id'] for s in ships}
+        keep = {k: v for k, v in self._ship_aliases.items() if v in ids}
+        keep.update(self._build_aliases(ships))
+        self._ship_aliases = keep
         return keep
 
     def stop(self):
