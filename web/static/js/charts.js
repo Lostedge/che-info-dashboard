@@ -75,7 +75,8 @@ function buildQcHeatData(rows, xLabels, yLabels) {
   for (const r of rows || []) {
     const x = xi.get(r.hour), y = yi.get(String(r.id));
     if (x == null || y == null) continue;
-    got.set(`${x},${y}`, Number(r.moves) || 0);
+    const k = `${x},${y}`;
+    got.set(k, (got.get(k) ?? 0) + (Number(r.moves) || 0));   // 同格累加
   }
   const cells = [];
   for (let x = 0; x < xLabels.length; x++) {

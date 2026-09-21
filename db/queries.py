@@ -117,18 +117,19 @@ SHIP_PROGRESS = """
 # 双吊 = 相邻两行（同一岸桥，按 WORK_TIM 排序）间隔 <30s 且同车号且都是 20 尺，合并计 1 move；其余每行计 1
 # 预读窗口必须 >= 下面的 30s 阈值，否则窗口首行会被误判为新 move
 QC_MOVE_HOUR = """
-    SELECT id, bucket, SUM(is_new) AS moves
+    SELECT id, voyage, bucket, SUM(is_new) AS moves
     FROM (
-        SELECT SUBSTR(SHIP_MACH_NO, -3)                                AS id,
-               TO_CHAR(TRUNC(WORK_TIM, 'HH24'), 'YYYY-MM-DD HH24:MI')  AS bucket,
-               CASE WHEN prev_tim IS NULL
-                      OR (WORK_TIM - prev_tim) * 86400 >= 30           -- 间隔 ≥30s → 新 move
-                      OR NVL(TRUCK_NO, '~') <> NVL(prev_trk, '~')      -- 车号不同 → 新 move
-                      OR CNTR_SIZ_COD <> '20'                          -- 非双 20 → 新 move
-                      OR prev_siz <> '20'
-                    THEN 1 ELSE 0 END                                  AS is_new
+        SELECT SUBSTR(w.SHIP_MACH_NO, -3)                               AS id,
+               s.VOYAGE_NO                                              AS voyage,
+               TO_CHAR(TRUNC(w.WORK_TIM, 'HH24'), 'YYYY-MM-DD HH24:MI')  AS bucket,
+               CASE WHEN w.prev_tim IS NULL
+                      OR (w.WORK_TIM - w.prev_tim) * 86400 >= 30        -- 间隔 ≥30s → 新 move
+                      OR NVL(w.TRUCK_NO, '~') <> NVL(w.prev_trk, '~')   -- 车号不同 → 新 move
+                      OR w.CNTR_SIZ_COD <> '20'                         -- 非双 20 → 新 move
+                      OR w.prev_siz <> '20'
+                    THEN 1 ELSE 0 END                                   AS is_new
         FROM (
-            SELECT SHIP_MACH_NO, WORK_TIM, TRUCK_NO, CNTR_SIZ_COD,
+            SELECT SHIP_MACH_NO, SHIP_NO, WORK_TIM, TRUCK_NO, CNTR_SIZ_COD,
                    LAG(WORK_TIM)     OVER (PARTITION BY SHIP_MACH_NO
                                            ORDER BY WORK_TIM, TRUCK_NO, CNTR) AS prev_tim,
                    LAG(TRUCK_NO)     OVER (PARTITION BY SHIP_MACH_NO
@@ -139,11 +140,12 @@ QC_MOVE_HOUR = """
             WHERE WORK_TIM >= :win_start - INTERVAL '1' MINUTE            -- 预读，仅供 LAG
               AND WORK_TIM <  :win_end
               AND SHIP_MACH_NO IN ('AQ101','AQ102','AQ103','AQ104','AQ105','AQ106')
-        )
-        WHERE WORK_TIM >= :win_start                                      -- 只统计目标窗口
+        ) w
+        LEFT JOIN JZCT_TOS_HIS.SHIP s ON s.SHIP_NO = w.SHIP_NO
+        WHERE w.WORK_TIM >= :win_start                                    -- 只统计目标窗口
     )
-    GROUP BY id, bucket
-    ORDER BY id, bucket
+    GROUP BY id, voyage, bucket
+    ORDER BY id, voyage, bucket
 """
 
 # ============================================================

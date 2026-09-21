@@ -85,7 +85,7 @@ const State = {
   ships: [],
   shipProgPct: {},          // { [id]: [{ t, iPct, ePct }] }      百分比历史，用于 sparkline
   shipProgNum: {},          // { [id]: [{ t, i_done, e_done }] }  详细箱量历史，用于 shipDetail
-  qcMoves: [],              // [{ id, hour: 'HH:00', moves: n }]  岸桥 move 数
+  qcMoves: {},              // { [voyage]: [{ id, hour, moves }] }  岸桥 move 数（按船）
   shipProgNumLoaded: false, // 是否已 GET 详细箱量历史
   qcMovesLoaded: false,     // 是否已 GET 岸桥 move 数
   statsMode: 'shift',       // 'day'=当日 / 'shift'=当班（默认当班，由后端 stats_mode 推送更新）
@@ -206,13 +206,14 @@ const State = {
     }
   },
 
-  /** 追加记录岸桥 move 数 */
+  /** 追加岸桥 move 数（GET 与 SSE 共用；按 (岸桥, 小时) upsert） */
   pushQcMove(list) {
     for (const r of list || []) {
       if (r.id == null || !r.hour) continue;
-      const hit = this.qcMoves.find(p => String(p.id) === String(r.id) && p.hour === r.hour);
+      const arr = (this.qcMoves[r.voyage ?? ''] ||= []);
+      const hit = arr.find(p => String(p.id) === String(r.id) && p.hour === r.hour);
       if (hit) hit.moves = Number(r.moves) || 0;
-      else this.qcMoves.push({ id: r.id, hour: r.hour, moves: Number(r.moves) || 0 });
+      else arr.push({ id: r.id, hour: r.hour, moves: Number(r.moves) || 0 });
     }
   },
 };
@@ -522,7 +523,6 @@ const ShipDetail = {
     this.syncTimeInputs();
     this.refresh();
     Charts.resizeShipDetail('sd-chart');
-    Charts.resizeQcHeat('qd-chart');
   },
 
   /** 参考线起点：开工时刻 → 首个采样点 → 当前时间 */
@@ -621,12 +621,15 @@ const QcDetail = {
     } catch { return null; }
   },
 
-  /** 当前上下文要显示的岸桥编号 */
+  /** 纵轴 = 当前在作业该船的岸桥 ∪ 该船有过 move 数据的岸桥 */
   qcIds() {
     const qcs = filterByConfig(State.getByType('1'), 'qc');
     if (this.scope !== 'ship') return qcs.map(d => d.id);
+
     const ship = State.ships.find(s => String(s.id) === String(this.id));
-    return qcsOfShip(ship, qcs).map(d => d.id);
+    const live = new Set(qcsOfShip(ship, qcs).map(d => String(d.id)));        // 正在作业
+    const past = new Set((State.qcMoves[this.id] || []).map(r => String(r.id))); // 作业过
+    return qcs.filter(d => live.has(String(d.id)) || past.has(String(d.id))).map(d => d.id);
   },
 
   render() {
@@ -639,7 +642,9 @@ const QcDetail = {
 
     Charts.syncQcLegend();
     Charts.renderQcHeat('qd-chart', {
-      rows: State.qcMoves,
+      rows: this.scope === 'ship'
+        ? (State.qcMoves[this.id] || [])                     // 只画该船的小时
+        : Object.values(State.qcMoves).flat(),               // 从岸桥卡片打开：全部
       yLabels,
     });
   },

@@ -49,7 +49,7 @@ class Scheduler:
         # 岸桥 move 数
         qc_move_cfg = config.get('qc_move', {})
         self.qc_move_hours = qc_move_cfg.get('hours', 24)
-        self._qc_move: dict[str, dict[str, int]] = {}   # {qc_id: {'YYYY-MM-DD HH:00': moves}}
+        self._qc_move: dict[str, dict[tuple, int]] = {}   # {qc_id: {(bucket, voyage): moves}}
 
         # 测试模式
         test_cfg = config.get('test', {})
@@ -289,13 +289,21 @@ class Scheduler:
         if rows is None:
             return
 
-        for r in rows:                                      # 存内存用 bucket（带日期）
-            self._qc_move.setdefault(r['id'], {})[r['bucket']] = int(r['moves'])
+        aliases = self._ship_aliases
+        merged = {}                                   # {(id, bucket, voyage): moves}
+        for r in rows:
+            v = str(r.get('voyage') or '')             # 无航次则为 ''，照常保留
+            v = str(aliases.get(v, v))                 # 外贸船航次 → 主船航次
+            k = (r['id'], r['bucket'], v)
+            merged[k] = merged.get(k, 0) + int(r['moves'])   # 同键累加（主船/外贸船同一小时）
+
+        for (qc, bucket, voyage), moves in merged.items():
+            self._qc_move.setdefault(qc, {})[(bucket, voyage)] = moves
 
         self._prune_qc_move(now)
 
-        pushed = [{'id': r['id'], 'hour': r['bucket'][11:16], 'moves': int(r['moves'])}
-                  for r in rows]                            # 只推本次查到的 1h（预热时为全量）
+        pushed = [{'id': qc, 'hour': bucket[11:16], 'voyage': voyage, 'moves': moves}
+                  for (qc, bucket, voyage), moves in merged.items()]
         if pushed:
             self._push('QCMOVE', 'qc_move', pushed)
 
@@ -305,15 +313,16 @@ class Scheduler:
         keep = {(hour0 - timedelta(hours=i)).strftime('%Y-%m-%d %H:00')
                 for i in range(1, self.qc_move_hours + 1)}
         for buckets in self._qc_move.values():
-            for k in [k for k in buckets if k not in keep]:
+            for k in [k for k in buckets if k[0] not in keep]:
                 del buckets[k]
 
     def get_qc_move(self) -> list[dict]:
-        """返回 [{id, hour, moves}]，供 SSE / GET 使用"""
+        """返回 [{id, hour, voyage, moves}]，供 SSE / GET 使用"""
         out = []
         for qc, buckets in self._qc_move.items():
-            for bucket, moves in sorted(buckets.items()):
-                out.append({'id': qc, 'hour': bucket[11:16], 'moves': moves})
+            for (bucket, voyage), moves in sorted(buckets.items()):
+                out.append({'id': qc, 'hour': bucket[11:16],
+                            'voyage': voyage, 'moves': moves})
         return out
 
     def _get_period_bounds(self, interval_minutes: int, now: datetime) -> tuple:
