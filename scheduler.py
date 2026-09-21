@@ -282,30 +282,26 @@ class Scheduler:
         """岸桥 move 数：抓已关闭的整点小时桶；span=1 只抓刚结束的小时，预热时传 hours"""
         now   = self.test_datetime or datetime.now()
         hour0 = now.replace(minute=0, second=0, microsecond=0)
-        win_start = hour0 - timedelta(hours=span)
 
         executor = QueryExecutor()
-        rows = self._try_query('QCMOVE', executor.get_qc_move, win_start, hour0)
+        rows = self._try_query('QCMOVE', executor.get_qc_move,
+                               hour0 - timedelta(hours=span), hour0)
         if rows is None:
             return
 
-        aliases = self._ship_aliases
-        merged = {}                                   # {(id, bucket, voyage): moves}
-        for r in rows:
-            v = str(r.get('voyage') or '')             # 无航次则为 ''，照常保留
-            v = str(aliases.get(v, v))                 # 外贸船航次 → 主船航次
-            k = (r['id'], r['bucket'], v)
-            merged[k] = merged.get(k, 0) + int(r['moves'])   # 同键累加（主船/外贸船同一小时）
-
-        for (qc, bucket, voyage), moves in merged.items():
-            self._qc_move.setdefault(qc, {})[(bucket, voyage)] = moves
-
+        merged = self._merge_qc_move(self._ship_aliases, rows)   # 外贸船航次归并 + 同键累加
+        self._record_qc_move(merged)
         self._prune_qc_move(now)
 
         pushed = [{'id': qc, 'hour': bucket[11:16], 'voyage': voyage, 'moves': moves}
                   for (qc, bucket, voyage), moves in merged.items()]
         if pushed:
             self._push('QCMOVE', 'qc_move', pushed)
+
+    def _record_qc_move(self, merged: dict):
+        """写入内存：{qc_id: {(bucket, voyage): moves}}"""
+        for (qc, bucket, voyage), moves in merged.items():
+            self._qc_move.setdefault(qc, {})[(bucket, voyage)] = moves
 
     def _prune_qc_move(self, now: datetime):
         """只保留最近 qc_move_hours 个已关闭整点桶"""
@@ -388,6 +384,18 @@ class Scheduler:
                 continue
             keep.append(p)
         return keep
+
+    @staticmethod
+    def _merge_qc_move(aliases: dict, rows: list) -> dict:
+        """外贸船航次并入主船，按 (岸桥, 小时, 航次) 累加
+        返回 {(id, bucket, voyage): moves}；bucket 为 'YYYY-MM-DD HH24:MI'"""
+        merged = {}
+        for r in rows:
+            v = str(r.get('voyage') or '')             # 无航次保留为 ''，供前端汇总
+            v = str(aliases.get(v, v))
+            k = (r['id'], r['bucket'], v)
+            merged[k] = merged.get(k, 0) + int(r['moves'])
+        return merged
 
     def _refresh_ship_aliases(self, ships: list) -> dict:
         """刷新外贸船别名映射：旧映射中主船仍在列表的予以保留
