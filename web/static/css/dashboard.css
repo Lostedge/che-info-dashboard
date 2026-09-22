@@ -750,6 +750,7 @@ main {
 .qd-heat-wrap {
   flex: 1;
   min-height: 0;
+  max-height: 24rem;
   position: relative;
 }
 
@@ -770,6 +771,27 @@ main {
 }
 
 .qd-empty.hidden { display: none; }
+
+/* qc_detail 展开按钮 */
+.panel-expand {
+  font-family: inherit;
+  background: none;
+  border: 1px solid var(--c-border);
+  border-radius: 0.4rem;
+  color: var(--c-soft);
+  font-size: 1.3rem;
+  padding: 0.2rem 0.8rem;
+  cursor: pointer;
+  margin-left: 1rem;
+  margin-right: auto;
+}
+
+.panel-expand:hover {
+  color: var(--c-text);
+  border-color: var(--c-dim);
+}
+
+.qd-head .sd-close { margin-left: auto; }
 
 /* ============================================================
    作业量图表面板

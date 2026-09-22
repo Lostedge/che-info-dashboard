@@ -425,6 +425,7 @@ const DetailPanel = {
     if (!this.el) return;
 
     document.getElementById('sd-close').onclick = () => this.close();
+    document.getElementById('qd-close').onclick = () => this.close();
 
     document.getElementById('ship-info').addEventListener('click', (e) => {
       const card = e.target.closest('.ship-card');
@@ -433,7 +434,7 @@ const DetailPanel = {
       this.openShip(card.dataset.id);
     });
 
-    // TODO: qc 卡片点击 → this.openQc(qcId)（后续）
+    document.getElementById('qc-expand').onclick = () => this.openQc();
   },
 
   isOpen() { return this.mode != null; },
@@ -446,7 +447,7 @@ const DetailPanel = {
   },
 
   /** 从 qc 面板单独打开：仅 qc */
-  async openQc(id) {
+  async openQc(id = null) {
     this.mode = 'qc';
     this._show({ ship: false, qc: true });
     await QcDetail.show(id, 'all');
@@ -612,7 +613,7 @@ const QcDetail = {
     if (!v) { this.id = null; Charts.destroyQcHeat('qd-chart'); }   // 隐藏即销毁，避免 0 尺寸画布
   },
 
-  refresh() { if (this.visible && this.id != null) this.render(); },
+  refresh() { if (this.visible && (this.scope === 'all' || this.id != null)) this.render(); },
 
   async _fetchAll() {
     try {
