@@ -93,14 +93,15 @@ function buildQcHeatData(rows, xLabels, yLabels) {
  * 构建岸桥色块图横轴标签：最近 hours 个整点
  * @param hours 时段数（含当前小时）
  * @param now   基准时刻 epoch ms
- * @returns {string[]} 'HH:00'，升序
+ * @returns {string[]} 'ddHH'，升序
  */
 function buildQcHeatLabels(hours, now = Date.now()) {
-  const d = new Date(now);
-  d.setMinutes(0, 0, 0);                        // 对齐到整点
+  const d = new Date(now), p = n => String(n).padStart(2, '0');
+  d.setMinutes(0, 0, 0);
+  // d.setHours(d.getHours() - 1);                     // 最后一格 = 刚结束的小时
   return Array.from({ length: hours }, (_, i) => {
     const t = new Date(d.getTime() - (hours - 1 - i) * 3600000);
-    return `${String(t.getHours()).padStart(2, '0')}:00`;
+    return `${p(t.getDate())}${p(t.getHours())}`;   // 'ddHH'
   });
 }
 
@@ -270,9 +271,11 @@ function qcHeatOptions(c, cfg, xLabels, yLabels) {
         displayColors: false,
         callbacks: {
           title: it => `${it[0].raw.y} 岸桥`,
-          label: it => it.raw.v == null
-            ? `${it.raw.x}　无数据`
-            : `${it.raw.x}　${it.raw.v} ${cfg?.unit || ''}`,
+          label: it => {
+            const hh = `${String(it.raw.x).slice(2, 4)}:00`;
+            return it.raw.v == null ? `${hh}　无数据`
+                                    : `${hh}　${it.raw.v} ${cfg?.unit || ''}`;
+          },
         },
       },
       datalabels: {
@@ -286,7 +289,10 @@ function qcHeatOptions(c, cfg, xLabels, yLabels) {
     },
     scales: {
       x: { type: 'category', offset: true, labels: xLabels,
-           ticks: { color: c.soft, maxRotation: 0, autoSkip: true },
+           ticks: { color: c.soft, maxRotation: 0, autoSkip: true,
+                    callback: function (v) {              // 键 'ddHH' → 'HH:00'
+                      return `${String(this.getLabelForValue(v)).slice(2, 4)}:00`;
+                    } },
            grid: { display: false } },
       y: { type: 'category', offset: true, labels: yLabels, reverse: true,   // reverse 与插件默认一致
            ticks: { color: c.text, font: { size: 13, weight: 'bold' } },

@@ -293,7 +293,7 @@ class Scheduler:
         self._record_qc_move(merged)
         self._prune_qc_move(now)
 
-        pushed = [{'id': qc, 'hour': bucket[11:16], 'voyage': voyage, 'moves': moves}
+        pushed = [{'id': qc, 'hour': self._hour_key(bucket), 'voyage': voyage, 'moves': moves}
                   for (qc, bucket, voyage), moves in merged.items()]
         if pushed:
             self._push('QCMOVE', 'qc_move', pushed)
@@ -317,7 +317,7 @@ class Scheduler:
         out = []
         for qc, buckets in self._qc_move.items():
             for (bucket, voyage), moves in sorted(buckets.items()):
-                out.append({'id': qc, 'hour': bucket[11:16],
+                out.append({'id': qc, 'hour': self._hour_key(bucket),
                             'voyage': voyage, 'moves': moves})
         return out
 
@@ -396,6 +396,11 @@ class Scheduler:
             k = (r['id'], r['bucket'], v)
             merged[k] = merged.get(k, 0) + int(r['moves'])
         return merged
+
+    @staticmethod
+    def _hour_key(bucket: str) -> str:
+        """'YYYY-MM-DD HH:MI' → 'ddHH'（前端匹配键）"""
+        return bucket[8:10] + bucket[11:13]
 
     def _refresh_ship_aliases(self, ships: list) -> dict:
         """刷新外贸船别名映射：旧映射中主船仍在列表的予以保留
