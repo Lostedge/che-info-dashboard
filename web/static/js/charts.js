@@ -261,8 +261,10 @@ function shipDetailDatasets(built, c, refLabel) {
 
 /** 岸桥色块图 options */
 function qcHeatOptions(c, cfg, xLabels, yLabels) {
-  /** 色块图单元格最大高度（px） */
-  const QC_HEAT_MAX_CELL_H = 40;
+  const MAX_CELL_H = 40;    // 单元格最大高度（px）
+  const GAP_X      = 6;     // 列间隙
+  const GAP_Y      = 8;     // 行间隙
+
   return {
     responsive: true, maintainAspectRatio: false, animation: false,
     plugins: {
@@ -270,7 +272,7 @@ function qcHeatOptions(c, cfg, xLabels, yLabels) {
       tooltip: {
         displayColors: false,
         callbacks: {
-          title: it => `${it[0].raw.y} 岸桥`,
+          title: it => `岸桥 ${it[0].raw.y}`,
           label: it => {
             const hh = `${String(it.raw.x).slice(2, 4)}:00`;
             return it.raw.v == null ? `${hh}　无数据`
@@ -294,21 +296,21 @@ function qcHeatOptions(c, cfg, xLabels, yLabels) {
                       return `${String(this.getLabelForValue(v)).slice(2, 4)}:00`;
                     } },
            grid: { display: false } },
-      y: { type: 'category', offset: true, labels: yLabels, reverse: true,   // reverse 与插件默认一致
+      y: { type: 'category', offset: true, labels: yLabels, reverse: false,
            ticks: { color: c.text, font: { size: 13, weight: 'bold' } },
            grid: { display: false } },
     },
     elements: {
       matrix: {
-        borderWidth: 2,
-        borderColor: '#0d1117',                 // 用底色做格间距
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,.09)',
         borderRadius: 3,
-        width:  ({ chart }) => ((chart.chartArea?.width  ?? 0) /
-                  Math.max(1, chart.options.scales.x.labels?.length || 0)) - 2,
+        width:  ({ chart }) => ((chart.chartArea?.width ?? 0) /
+                  Math.max(1, chart.options.scales.x.labels?.length || 0)) - GAP_X,
         height: ({ chart }) => Math.max(0,
                   Math.min((chart.chartArea?.height ?? 0) /
                   Math.max(1, chart.options.scales.y.labels?.length || 0),
-                  QC_HEAT_MAX_CELL_H) - 2),
+                  MAX_CELL_H) - GAP_Y),
       },
     },
   };

@@ -627,17 +627,14 @@ main {
   align-items: center;
   gap: var(--gap);
   margin-bottom: 0.6rem;
+  height: 5rem;
+  padding: 1rem 1.4rem;
 }
 
 .detail-panel .qd-head { display: none; }
 .detail-panel[data-mode="qc"] .qd-head { display: flex; }
 
 /* 船舶详情 */
-.sd-head {
-  height: 5rem;
-  padding: 1rem 1.4rem;
-}
-
 .sd-title {
   display: flex;
   align-items: baseline;
@@ -722,6 +719,12 @@ main {
 }
 
 /* 岸桥详情色块图 */
+.qd-title {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--c-text);
+}
+
 .qd-body {
   flex: 1;
   display: flex;
@@ -750,7 +753,7 @@ main {
 .qd-heat-wrap {
   flex: 1;
   min-height: 0;
-  max-height: 24rem;
+  max-height: 22rem;
   position: relative;
 }
 
@@ -766,8 +769,10 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.6rem;
+  font-size: 1.4rem;
   color: var(--c-dim);
+  background-color: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-sm);
 }
 
 .qd-empty.hidden { display: none; }
