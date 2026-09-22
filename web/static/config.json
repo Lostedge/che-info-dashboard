@@ -32,8 +32,9 @@
 
   "qc_move_heat": {
     "hours": 24,
-    "breaks": [0, 8, 16, 22, 30],
-    "colors": ["#1b2431", "#1e3a8a", "#2563eb", "#38bdf8", "#7dd3fc"],
+    "breaks": [0, 1, 8, 15, 22, 30],
+    "colors": ["#3f4a5b", "#fa8a8a", "#fca55c", "#fddb6b", "#68e39c", "#10b981"],
+    "darkFrom": 1,
     "unit": "move"
   }
 }

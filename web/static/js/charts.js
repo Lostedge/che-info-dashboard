@@ -5,6 +5,7 @@
  * 图表：
  *   设备作业量柱状图（chart-rtg/qc/fl）→ buildDeviceChartData / deviceChart*
  *   船舶详情折线图（sd-chart）          → buildShipDetailData / shipDetail*
+ *   岸桥 move 色块图（qd-chart）        → buildQcHeatData / qcHeatScale / qcHeat*
  */
 
 
@@ -125,6 +126,14 @@ function chartColors() {
   };
 }
 
+/** 线性插值两个 #rrggbb */
+function mixHex(a, b, t) {
+  const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const [r1, g1, b1] = p(a), [r2, g2, b2] = p(b);
+  const m = (x, y) => Math.round(x + (y - x) * t).toString(16).padStart(2, '0');
+  return `#${m(r1, r2)}${m(g1, g2)}${m(b1, b2)}`;
+}
+
 /**
  * move 值 → 色阶颜色（配置分档）
  * @param v   吊数；null 表示该时段无数据
@@ -133,12 +142,21 @@ function chartColors() {
  */
 function qcHeatScale(v, cfg) {
   const breaks = cfg?.breaks ?? [];
-  const colors = cfg?.colors ?? ['#2563eb'];
-  if (v == null) return { color: 'rgba(72,79,88,.35)', step: -1 };
+  const colors = cfg?.colors ?? [];
+  if (v == null || !breaks.length) return { color: 'rgba(255,255,255,.03)', step: -1 };
+  if (v <= breaks[0]) return { color: colors[0] ?? '#3f4a5b', step: 0 };
 
-  let i = 0;
+  let i = 1;
   while (i < breaks.length - 1 && v >= breaks[i + 1]) i++;
-  return { color: colors[i] ?? colors[colors.length - 1], step: i };
+
+  const lo  = breaks[i];
+  const hi  = breaks[i + 1];
+  const cur = colors[i] ?? colors[colors.length - 1];
+  const nxt = colors[i + 1];
+  if (hi == null || !nxt) return { color: cur, step: i };   // 末段：颜色恒定
+
+  const t = Math.min(1, (v - lo) / (hi - lo));
+  return { color: mixHex(cur, nxt, t), step: i };
 }
 
 /** 设备作业量柱状图 options */
@@ -496,7 +514,7 @@ const Charts = {
     const cfg = Config.data?.qc_move_heat;
     const bar = document.getElementById('qd-legend-bar');
     if (!cfg || !bar) return;
-    bar.style.background = `linear-gradient(90deg, ${(cfg.colors || []).join(',')})`;
+    bar.style.background = `linear-gradient(90deg, ${(cfg.colors || []).slice(1).join(',')})`;
     const mx = document.getElementById('qd-legend-max');
     if (mx) mx.textContent = `${(cfg.breaks || []).at(-1)}+`;
   },
