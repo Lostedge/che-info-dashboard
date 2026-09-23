@@ -385,7 +385,6 @@ main {
   flex-direction: column;
   gap: var(--gap);
   min-height: 0;
-  overflow: hidden;
 }
 
 /* 船舶面板 */
@@ -400,7 +399,7 @@ main {
   background: none;
   border: none;
   border-radius: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* 单艘船舶卡片 */
@@ -416,7 +415,10 @@ main {
   border: 1px solid var(--c-border);
   background: var(--c-surface2);
   box-shadow: 0 0 0.8rem rgba(0, 0, 0, 0.35);
-  transition: border-color 0.2s;
+  position: relative;
+  cursor: pointer;
+  transition: border-color .18s, box-shadow .18s, background-color .18s, 
+              transform .18s ease, opacity .18s;
   animation: ship-in 0.4s ease-out;
 }
 
@@ -427,20 +429,29 @@ main {
 
 .ship-card--empty {
   border: none;
-  /* border-style: dashed;
-  border-color: var(--c-border); */
   background: rgba(255, 255, 255, 0.03);
   box-shadow: none;
+  cursor: default; 
 }
 
-.ship-card:hover {
-  border-color: var(--c-muted);
+.ship-card:not(.ship-card--empty):hover {
+  z-index: 2;
+  transform: translateY(-0.2rem);
+  box-shadow: 0 0.4rem 1.2rem rgba(0, 0, 0, .55),
+              0 0 0 1px var(--sc-accent),
+              0 0 1.6rem -0.5rem var(--sc-accent);
+}
+
+.ship-card:not(.ship-card--empty):active {
+  background-color: #1a2233;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .05);
+  transition-duration: .05s;
 }
 
 /* 船舶状态 */
-.ship-card.state-work  { border-color: var(--ship-work); }
-.ship-card.state-berth { border-color: var(--ship-berth); }
-.ship-card.state-wait  { border-color: var(--ship-wait); }
+.ship-card.state-work  { border-color: var(--ship-work);  --sc-accent: var(--c-green); }
+.ship-card.state-berth { border-color: var(--ship-berth); --sc-accent: var(--c-amber); }
+.ship-card.state-wait  { border-color: var(--ship-wait);  --sc-accent: var(--c-blue);  }
 
 .ship-card.state-work  .sc-ship { color: var(--c-green); }
 .ship-card.state-berth .sc-ship { color: var(--c-amber); }
@@ -599,7 +610,7 @@ main {
   flex-direction: column;
   gap: var(--gap);
   min-height: 0;
-  overflow: hidden;
+  /* overflow: hidden; */
 }
 
 /* 展开时隐藏作业量统计 */
