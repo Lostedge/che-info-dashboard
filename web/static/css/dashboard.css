@@ -243,7 +243,7 @@ main {
   border-radius: var(--radius-sm);
   background: var(--c-surface2);
   border: 1px solid transparent;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, background 0.15s, opacity 0.18s;
   font-size: 1.25rem;
 }
 
@@ -348,6 +348,21 @@ main {
   height: 100%;
   font-size: 1.3rem;
   color: var(--c-dim);
+}
+
+/* 选中船舶时高亮设备卡片 */
+#qc-cards.has-active .card-qc:not(.is-active) {
+  opacity: .60;
+}
+
+#qc-cards .card-qc.is-active:not(.offline) {
+  border-color: var(--c-blue);
+  background-color: #232c40;
+}
+
+#qc-cards .card-qc.is-active:hover {
+  border-color: var(--c-blue);
+  background-color: #232c40;
 }
 
 /* ============================================================

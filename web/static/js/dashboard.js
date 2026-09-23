@@ -490,14 +490,29 @@ const DetailPanel = {
     this.col.classList.add('detail-open');
   },
 
-  /** 标记当前展开的船舶卡片；id 省略时取 ShipDetail.id */
+  /** 标记当前展开的船舶卡片和相关作业设备卡片 */
   _markActive(id = this.mode === 'ship' ? ShipDetail.id : null) {
-    const info = document.getElementById('ship-info');
-    if (!info) return;
-    info.classList.toggle('has-active', id != null);
-    info.querySelectorAll('.ship-card').forEach(el => {
-      el.classList.toggle('is-active', id != null && String(el.dataset.id) === String(id));
-    });
+    const info   = document.getElementById('ship-info');
+    const qcList = document.getElementById('qc-cards');
+    const ship   = id != null ? State.ships.find(s => String(s.id) === String(id)) : null;
+
+    if (info) {
+      info.classList.toggle('has-active', id != null);
+      info.querySelectorAll('.ship-card').forEach(el => {
+        el.classList.toggle('is-active', id != null && String(el.dataset.id) === String(id));
+      });
+    }
+
+    // 岸桥卡片：只高亮"此刻正在作业该船"的岸桥
+    const working = new Set(
+      qcsOfShip(ship, filterByConfig(State.getByType('1'), 'qc')).map(d => String(d.id))
+    );
+    if (qcList) {
+      qcList.classList.toggle('has-active', working.size > 0);
+      qcList.querySelectorAll('.card-qc').forEach(el => {
+        el.classList.toggle('is-active', working.has(String(el.dataset.id)));
+      });
+    }
   },
 };
 
@@ -700,7 +715,7 @@ const Cards = {
     const ship   = (d.ship_name || '').slice(0, 10);
     const way    = this._workWay(d.work_way, type);
 
-    return `<div class="card card-${type}${stateCls}">
+    return `<div class="card card-${type}${stateCls}" data-id="${esc(d.id)}">
       <span class="c-bar ${this._bar(d)}"></span>
       <span class="c-id">${esc(d.id)}</span>
       <span class="c-driver">${esc(d.driver || '')}</span>
