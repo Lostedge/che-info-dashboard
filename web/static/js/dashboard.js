@@ -334,6 +334,7 @@ const Ships = {
     this.el.querySelectorAll('.bar-fill').forEach(el => {
       el.style.width = `${el.dataset.pct}%`;
     });
+    DetailPanel._markActive();
   },
 
   /** 排序船舶 */
@@ -443,6 +444,7 @@ const DetailPanel = {
   async openShip(id) {
     this.mode = 'ship';
     this._show({ ship: true, qc: true });
+    this._markActive(id);
     await Promise.all([ShipDetail.show(id), QcDetail.show(id, 'ship')]);
   },
 
@@ -450,6 +452,7 @@ const DetailPanel = {
   async openQc(id = null) {
     this.mode = 'qc';
     this._show({ ship: false, qc: true });
+    this._markActive();
     await QcDetail.show(id, 'all');
   },
 
@@ -458,6 +461,7 @@ const DetailPanel = {
     this.col.classList.remove('detail-open');
     ShipDetail.setVisible(false);
     QcDetail.setVisible(false);
+    this._markActive();
   },
 
   /** 推送到达 */
@@ -484,6 +488,16 @@ const DetailPanel = {
     QcDetail.setVisible(qc);
     this.el.dataset.mode = ship ? 'ship' : 'qc';
     this.col.classList.add('detail-open');
+  },
+
+  /** 标记当前展开的船舶卡片；id 省略时取 ShipDetail.id */
+  _markActive(id = this.mode === 'ship' ? ShipDetail.id : null) {
+    const info = document.getElementById('ship-info');
+    if (!info) return;
+    info.classList.toggle('has-active', id != null);
+    info.querySelectorAll('.ship-card').forEach(el => {
+      el.classList.toggle('is-active', id != null && String(el.dataset.id) === String(id));
+    });
   },
 };
 

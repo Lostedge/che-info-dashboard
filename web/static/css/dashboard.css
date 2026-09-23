@@ -448,6 +448,30 @@ main {
   transition-duration: .05s;
 }
 
+.ship-card.is-active {
+  background-color: #232c40;
+  border-color: var(--sc-accent);
+  box-shadow: 0 0 0 1px var(--sc-accent),
+              0 0 1.6rem -0.5rem var(--sc-accent);
+}
+
+.ship-card.is-active:not(.ship-card--empty):hover {
+  transform: translateY(-0.2rem);
+  box-shadow: 0 0 0 1px var(--sc-accent),
+              0 0 1.6rem -0.5rem var(--sc-accent);
+}
+
+/* 有卡片展开时：其他船舶压暗 */
+.ship-panel.has-active .ship-card:not(.is-active):not(.ship-card--empty) {
+  opacity: .70;
+  border-color: var(--c-border);
+}
+
+.ship-panel.has-active .ship-card:not(.is-active):hover {
+  opacity: 1;
+  border-color: var(--sc-accent);
+}
+
 /* 船舶状态 */
 .ship-card.state-work  { border-color: var(--ship-work);  --sc-accent: var(--c-green); }
 .ship-card.state-berth { border-color: var(--ship-berth); --sc-accent: var(--c-amber); }
