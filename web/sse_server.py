@@ -28,6 +28,7 @@ class SSEHandler(BaseHTTPRequestHandler):
     on_client_connect = None
     ship_history_getter = None
     qc_move_getter = None
+    port_cntr_getter = None 
     max_clients: int = 20
     auth: dict = {}
 
@@ -68,6 +69,8 @@ class SSEHandler(BaseHTTPRequestHandler):
                 self._handle_api_history()
             elif path == '/api/qc_move':
                 self._handle_api_qc_move()
+            elif path == '/api/ship_cntr':
+                self._handle_api_cntr()
             elif path.startswith('/'):
                 self._handle_static()
             else:
@@ -201,6 +204,22 @@ class SSEHandler(BaseHTTPRequestHandler):
             data = []
         self._send_bytes(200, 'application/json; charset=utf-8',
                          json.dumps(data, ensure_ascii=False).encode('utf-8'))
+
+    def _handle_api_cntr(self):
+        """GET /api/port_cntr?voyage=xxx → {voyage, ts, cached, rows}"""
+        voyage = (parse_qs(urlparse(self.path).query).get('voyage') or [''])[0]
+        getter = self.__class__.port_cntr_getter
+        if not getter or not voyage:
+            status = 503 if not getter else 400
+            body = b'{"error": "bad request"}'
+        else:
+            try:
+                data = getter(voyage)
+            except Exception as e:
+                self.logger.error(f"在场箱查询失败: {e}", exc_info=True)
+                data = {'voyage': voyage, 'ts': 0, 'cached': False, 'rows': []}
+            status, body = 200, json.dumps(data, ensure_ascii=False).encode('utf-8')
+        self._send_bytes(status, 'application/json; charset=utf-8', body)
 
     def _get_static_dir(self):
         if getattr(sys, 'frozen', False):
