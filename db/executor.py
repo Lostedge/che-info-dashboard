@@ -114,3 +114,11 @@ class QueryExecutor:
             'win_start': win_start,
             'win_end':   win_end,
         })
+
+    def get_ship_cntr(self, voyage_nos: list) -> Optional[list[dict]]:
+        """某(些)航次的装船箱分布（按场区/卸港/空重/尺寸）"""
+        if not voyage_nos:
+            return []
+        voyages = ', '.join(f':v{i}' for i in range(len(voyage_nos)))
+        params = {f'v{i}': v for i, v in enumerate(voyage_nos)}
+        return self.execute(queries.SHIP_CNTR_SUM.format(voyages=voyages), params)

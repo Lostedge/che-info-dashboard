@@ -4,11 +4,15 @@
 
 import time
 import logging
+import threading
 from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from db import QueryExecutor
+
+PORT_CNTR_TTL = 24 * 3600           # 在场箱缓存保留时长（秒）
+PORT_CNTR_MIN_INTERVAL = 30         # 同一航次两次真查询的最小间隔（秒）
 
 
 class Scheduler:
@@ -50,6 +54,11 @@ class Scheduler:
         qc_move_cfg = config.get('qc_move', {})
         self.qc_move_hours = qc_move_cfg.get('hours', 24)
         self._qc_move: dict[str, dict[tuple, int]] = {}   # {qc_id: {(bucket, voyage): moves}}
+
+        # 在场箱分布
+        self._port_cntr: dict[str, list[dict]] = {}     # {voyage: rows}
+        self._port_cntr_at: dict[str, float] = {}       # {voyage: 上次查询时刻(epoch s)}
+        self._port_cntr_lock = threading.Lock()
 
         # 测试模式
         test_cfg = config.get('test', {})
@@ -320,6 +329,44 @@ class Scheduler:
                 out.append({'id': qc, 'hour': self._hour_key(bucket),
                             'voyage': voyage, 'moves': moves})
         return out
+
+    def get_ship_cntr(self, voyage: str) -> dict:
+        """船舶在场箱分布：尽量返回最新（min_interval 内的重复请求命中缓存）
+        返回 {'voyage', 'ts', 'cached', 'rows'}
+        """
+        v = str(voyage)
+        now = time.time()
+
+        def cached(cached_flag=True):
+            return {'voyage': v, 'ts': int(self._port_cntr_at.get(v, 0) * 1000),
+                    'cached': cached_flag, 'rows': self._port_cntr.get(v, [])}
+
+        if now - self._port_cntr_at.get(v, 0) < PORT_CNTR_MIN_INTERVAL:
+            return cached()
+
+        with self._port_cntr_lock:                  # 同时只允许一个真查询
+            if time.time() - self._port_cntr_at.get(v, 0) < PORT_CNTR_MIN_INTERVAL:
+                return cached()                     # 等锁期间别人已刷过
+            voyages = [v] + [a for a, m in self._ship_aliases.items() if m == v]
+            executor = QueryExecutor()
+            rows = self._try_query('PORT', executor.get_ship_cntr, voyages)
+            if rows is None:
+                return cached()                     # 失败退回旧缓存
+            self._port_cntr[v] = rows
+            self._port_cntr_at[v] = time.time()
+            self._prune_ship_cntr() 
+            return {'voyage': v, 'ts': int(self._port_cntr_at[v] * 1000),
+                    'cached': False, 'rows': rows}
+
+    def _prune_ship_cntr(self):
+        """清理 24h 未被查看的航次缓存"""
+        cutoff = time.time() - PORT_CNTR_TTL
+        dead = [k for k, t in self._port_cntr_at.items() if t < cutoff]
+        for k in dead:
+            self._port_cntr_at.pop(k, None)
+            self._port_cntr.pop(k, None)
+        if dead:
+            self.logger.info(f"在场箱缓存清理: {len(dead)} 个航次")
 
     def _get_period_bounds(self, interval_minutes: int, now: datetime) -> tuple:
         """返回对齐到 interval 边界的时间窗口"""

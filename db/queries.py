@@ -148,6 +148,34 @@ QC_MOVE_HOUR = """
     ORDER BY id, voyage, bucket
 """
 
+# 查询某航次装船箱分布：按 场区/卸港/空重/尺寸 统计
+# voyage → 出口航次 SHIP_NO（E）→ 该船号下的在场箱
+SHIP_CNTR_SUM = """
+    SELECT g.disc_port,
+           p.C_PORT_NAM                                                 AS port_nam,
+           g.ef,
+           g.size,
+           g.area,
+           g.cnt
+    FROM (
+        SELECT NVL(c.DISC_PORT_COD, '-')                                AS disc_port,
+               NVL(c.E_F_ID, '-')                                       AS ef,
+               c.CNTR_SIZ_COD                                           AS size,
+               c.CY_AREA_NO                                             AS area,
+               COUNT(*)                                                 AS cnt
+        FROM JZCT_TOS.PORT_CNTR c
+        WHERE c.SHIP_NO IN (
+                SELECT s.SHIP_NO
+                FROM JZCT_TOS_HIS.SHIP s
+                WHERE s.VOYAGE_NO IN ({voyages})
+              )
+        GROUP BY NVL(c.DISC_PORT_COD, '-'), NVL(c.E_F_ID, '-'),
+                 c.CNTR_SIZ_COD, c.CY_AREA_NO
+    ) g
+    LEFT JOIN JZCT_CODE.C_PORT p ON p.PORT_COD = g.disc_port
+    ORDER BY g.area, g.disc_port, g.ef, g.size
+"""
+
 # ============================================================
 # 当班统计：换班检测
 # ============================================================
