@@ -154,26 +154,27 @@ SHIP_CNTR_SUM = """
     SELECT g.disc_port,
            p.C_PORT_NAM                                                 AS port_nam,
            g.ef,
-           g.size,
+           g.siz,
            g.area,
            g.cnt
     FROM (
         SELECT NVL(c.DISC_PORT_COD, '-')                                AS disc_port,
                NVL(c.E_F_ID, '-')                                       AS ef,
-               c.CNTR_SIZ_COD                                           AS size,
-               c.CY_AREA_NO                                             AS area,
+               c.CNTR_SIZ_COD                                           AS siz,
+               NVL(c.CY_AREA_NO, '-')                                   AS area,
                COUNT(*)                                                 AS cnt
         FROM JZCT_TOS.PORT_CNTR c
         WHERE c.SHIP_NO IN (
                 SELECT s.SHIP_NO
                 FROM JZCT_TOS_HIS.SHIP s
                 WHERE s.VOYAGE_NO IN ({voyages})
+                  AND s.I_E_ID = 'E'
               )
         GROUP BY NVL(c.DISC_PORT_COD, '-'), NVL(c.E_F_ID, '-'),
                  c.CNTR_SIZ_COD, c.CY_AREA_NO
     ) g
     LEFT JOIN JZCT_CODE.C_PORT p ON p.PORT_COD = g.disc_port
-    ORDER BY g.area, g.disc_port, g.ef, g.size
+    ORDER BY g.area, g.disc_port, g.ef, g.siz
 """
 
 # ============================================================
