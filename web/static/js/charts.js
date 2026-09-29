@@ -38,7 +38,9 @@ function buildDeviceChartData(list) {
 function buildShipDetailData(points, plan, t0, dur) {
   const pts   = (points || []).filter(p => p.t != null);
   const start = t0 ?? pts[0]?.t ?? Date.now();
-  const durMs = (Number(dur) || 0) * 3600 * 1000;
+  const H     = 3600 * 1000;
+  const durMs = (Number(dur) || 0) * H;
+  const hasRef = plan > 0 && durMs > 0;
   const end   = durMs > 0 ? start + durMs : null;
 
   // x 刻度：开工起点 + 各采样点 + 参考线终点
@@ -53,12 +55,18 @@ function buildShipDetailData(points, plan, t0, dur) {
     return hit ? (Number(hit.i_done) + Number(hit.e_done)) : null;
   });
 
-  // 参考直线：start → end，0 → plan
-  const hasRef = plan > 0 && durMs > 0;
-  const ref = times.map(t =>
-    (hasRef && t >= start && t <= end) ? plan * ((t - start) / durMs) : null);
+  /** 等速线：用时 d 跑完 plan；到点即断（不越出 plan、不改轴范围） */
+  const refLine = d => times.map(t =>
+    (hasRef && d > 0 && t >= start && t <= start + d)
+      ? plan * ((t - start) / d) : null);
 
-  return { labels: times.map(fmtTs), actual, ref };
+  return {
+    labels: times.map(fmtTs),
+    actual,
+    ref:      refLine(durMs),
+    refEarly: durMs > H ? refLine(durMs - H) : times.map(() => null),
+    refLate:  refLine(durMs + H),
+  };
 }
 
 
@@ -268,12 +276,18 @@ function shipDetailOptions(c) {
 
 /** 船舶详情折线 datasets */
 function shipDetailDatasets(built, c, refLabel) {
+  const band = {
+    borderColor: 'rgba(139, 148, 158, .75)',
+    borderDash: [6, 4], pointRadius: 0, fill: false, borderWidth: 1,
+  };
   return [
     { label: '实际完成(合计)', data: built.actual, borderColor: '#4cc2ff',
       backgroundColor: 'rgba(76,194,255,.15)', fill: true, spanGaps: true,
       pointRadius: 1.5, tension: 0.25, borderWidth: 2 },
     { label: refLabel, data: built.ref, borderColor: '#ffd04c',
       borderDash: [6, 4], pointRadius: 0, fill: false, borderWidth: 1.5 },
+    { ...band, label: `−1h`, data: built.refEarly },
+    { ...band, label: `+1h`, data: built.refLate },
   ];
 }
 
@@ -445,6 +459,10 @@ const Charts = {
       chart.data.datasets[0].data  = built.actual;
       chart.data.datasets[1].data  = built.ref;
       chart.data.datasets[1].label = refLabel;
+      chart.data.datasets[2].data  = built.refEarly;
+      chart.data.datasets[2].label = `−1h`;
+      chart.data.datasets[3].data  = built.refLate;
+      chart.data.datasets[3].label = `+1h`;
       chart.update('none');
       return chart;
     }
