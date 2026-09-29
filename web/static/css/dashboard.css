@@ -668,7 +668,7 @@ main {
 .detail-ship {
   flex: 3;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 22rem;
+  grid-template-columns: minmax(0, 1fr) 26rem;
   grid-template-rows: auto minmax(0, 1fr);
 }
 
@@ -800,6 +800,7 @@ main {
   flex-direction: column;
   gap: 0.2rem;
   min-width: 0;
+  color: var(--c-text);
 }
 
 .sd-cntr-time { font-size: 1.2rem; font-weight: 400; color: var(--c-dim); }
@@ -820,6 +821,32 @@ main {
   text-align: right;
   border-bottom: 1px solid var(--c-border);
 }
+
+/* 场区分界 */
+.cntr-table tbody tr.ct-group-start > td {
+  border-top: 2px solid var(--c-border);
+  padding-top: 0.8rem;
+}
+.cntr-table tbody tr.ct-group-start:first-child > td { border-top: none; }
+
+/* 卸货港列突出 表头吸顶 */
+.cntr-table thead th { 
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--c-surface2);
+  font-weight: 600; 
+  color: var(--c-soft); 
+}
+
+.cntr-table thead th:not(:first-child):not(.ct-sum) {
+  color: var(--c-text);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* 合计列调暗 */
+.cntr-table tbody td.ct-sum { color: var(--c-soft); font-weight: 600; }
 
 /* 表底合计行（按流向纵向合计） */
 .cntr-table tfoot td {
@@ -1029,18 +1056,35 @@ main {
    滚动条
    ============================================================ */
 
-.card-list::-webkit-scrollbar {
-  width: 0.3rem;
+.card-list::-webkit-scrollbar,
+.sd-cntr-body::-webkit-scrollbar {
+  width: 0.6rem;
+  height: 0.6rem;
 }
 
-.card-list::-webkit-scrollbar-track {
+.card-list::-webkit-scrollbar-track,
+.sd-cntr-body::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.card-list::-webkit-scrollbar-thumb {
+.card-list::-webkit-scrollbar-thumb,
+.sd-cntr-body::-webkit-scrollbar-thumb {
   background: var(--c-border);
-  border-radius: 3px;
+  border-radius: 0.3rem;
 }
+
+.card-list::-webkit-scrollbar-thumb:hover,
+.sd-cntr-body::-webkit-scrollbar-thumb:hover {
+  background: var(--c-muted);
+}
+
+/* 横竖交汇处的方块，避免出现白点 */
+.sd-cntr-body::-webkit-scrollbar-corner { background: transparent; }
+
+/* 预留滚动条槽位
+.sd-cntr-body {
+  scrollbar-gutter: stable;
+} */
 
 /* ============================================================
    宽屏 / 小屏

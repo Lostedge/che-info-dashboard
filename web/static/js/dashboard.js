@@ -734,6 +734,14 @@ const CntrDetail = {
     if (left > 0) this.btnTimer = setTimeout(() => { this.el.btn.disabled = false; }, left + 200);
   },
 
+  /** 分界组序号：A=0 / B=1 / 其他（含 '-'）=2 */
+  _group(area) {
+    const c = String(area ?? '').trim().toUpperCase()[0];
+    if (c === 'A') return 0;
+    if (c === 'B') return 1;
+    return 2;
+  },
+
   /** manual=true 手动刷新：60s 内不重复查 */
   async load(manual = false) {
     if (!this.id) return;
@@ -770,23 +778,36 @@ const CntrDetail = {
       m.set(portOf(r), (m.get(portOf(r)) ?? 0) + r.cnt);
       byArea.set(r.area, m);
     }
-    const areas = [...byArea.keys()]
-      .sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
+
+    // '-' 置底，其余沿用字母+数字序
+    const areas = [...byArea.keys()].sort((a, b) =>
+      ((a === '-' ? 1 : 0) - (b === '-' ? 1 : 0))
+      || String(a).localeCompare(String(b), undefined, { numeric: true }));
 
     const colSum = new Map();
     for (const m of byArea.values())
       for (const [p, n] of m) colSum.set(p, (colSum.get(p) ?? 0) + n);
     const grand = [...colSum.values()].reduce((s, n) => s + n, 0);
 
+    // ② 组首行加 ct-group-start，用于画分界
+    let prevG = null;
+    const body = areas.map(a => {
+      const g = this._group(a);
+      const head = g !== prevG;
+      prevG = g;
+
+      const m   = byArea.get(a);
+      const sum = [...m.values()].reduce((s, n) => s + n, 0);
+
+      return `<tr class="${head ? 'ct-group-start' : ''}">
+        <td class="ct-area">${escapeHtml(a)}</td>`
+        + ports.map(p => `<td>${m.get(p) ?? ''}</td>`).join('')
+        + `<td class="ct-sum">${sum}</td></tr>`;
+    }).join('');
+
     el.body.innerHTML = `<table class="cntr-table">
       <thead><tr><th>场区</th>${ports.map(p => `<th>${escapeHtml(p)}</th>`).join('')}<th class="ct-sum">合计</th></tr></thead>
-      <tbody>${areas.map(a => {
-        const m   = byArea.get(a);
-        const sum = [...m.values()].reduce((s, n) => s + n, 0);
-        return `<tr><td>${escapeHtml(a)}</td>`
-             + ports.map(p => `<td>${m.get(p) ?? ''}</td>`).join('')
-             + `<td class="ct-sum">${sum}</td></tr>`;
-      }).join('')}</tbody>
+      <tbody>${body}</tbody>
       <tfoot><tr>
         <td>合计</td>
         ${ports.map(p => `<td>${colSum.get(p) ?? ''}</td>`).join('')}
