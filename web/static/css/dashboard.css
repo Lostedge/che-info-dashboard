@@ -663,11 +663,19 @@ main {
 }
 
 .detail-slot.hidden { display: none; }
-.detail-ship { flex: 3; }
+
+/* 船舶详情：头行通栏，图表与箱区表左右并排 */
+.detail-ship {
+  flex: 3;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 22rem;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.detail-ship > .sd-head { grid-column: 1 / -1; }
 .detail-qc   { flex: 1; }
 
 .detail-ship .sd-chart-wrap {
-  flex: 1;
   min-height: 0;
   position: relative;
 }
@@ -766,6 +774,77 @@ main {
 
 .sd-chart-wrap  {
   padding: 0 1.4rem 1.4rem 1.4rem;
+}
+
+/* 船舶在场箱分布表 */
+.sd-cntr {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  min-height: 0;
+  padding: 0 1.4rem 1.4rem 1.4rem;
+  border-left: 1px solid var(--c-border);
+}
+
+.sd-cntr-head {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--c-soft);
+}
+
+.sd-cntr-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.sd-cntr-time { font-size: 1.2rem; font-weight: 400; color: var(--c-dim); }
+
+#cntr-refresh { margin-left: auto; margin-right: 0; }
+
+.sd-cntr-body { flex: 1; min-height: 0; overflow: auto; }
+
+.cntr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 1.3rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.cntr-table th, .cntr-table td {
+  padding: 0.15rem 0.8rem;
+  text-align: right;
+  border-bottom: 1px solid var(--c-border);
+}
+
+/* 表底合计行（按流向纵向合计） */
+.cntr-table tfoot td {
+  position: sticky;
+  bottom: 0;
+  background: var(--c-surface2);
+  border-top: 1px solid var(--c-border);
+  border-bottom: none;
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+  font-weight: 700;
+  color: var(--c-text);
+}
+
+.cntr-table th:first-child, .cntr-table td:first-child { text-align: left; }
+.cntr-table .ct-sum { font-weight: 700; }
+.cntr-empty { font-size: 1.3rem; color: var(--c-dim); }
+
+/* 刷新按钮禁用 */
+.panel-expand:disabled,
+.panel-expand:disabled:hover {
+  opacity: 0.45;
+  color: var(--c-dim);
+  border-color: var(--c-border);
+  cursor: not-allowed;
 }
 
 /* 岸桥详情色块图 */

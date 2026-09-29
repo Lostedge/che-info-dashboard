@@ -442,10 +442,11 @@ const DetailPanel = {
 
   /** 从船舶卡片打开：ship + qc */
   async openShip(id) {
+    const fresh = this.mode !== 'ship';        // 从关闭态 / QC 态打开船舶面板 → 强制刷新一次 cntr
     this.mode = 'ship';
     this._show({ ship: true, qc: true });
     this._markActive(id);
-    await Promise.all([ShipDetail.show(id), QcDetail.show(id, 'ship')]);
+    await Promise.all([ShipDetail.show(id), QcDetail.show(id, 'ship'), CntrDetail.show(id, fresh)]);
   },
 
   /** 从 qc 面板单独打开：仅 qc */
@@ -461,6 +462,7 @@ const DetailPanel = {
     this.col.classList.remove('detail-open');
     ShipDetail.setVisible(false);
     QcDetail.setVisible(false);
+    CntrDetail.setVisible(false);
     this._markActive();
   },
 
@@ -485,6 +487,7 @@ const DetailPanel = {
     this.slot.ship.classList.toggle('hidden', !ship);
     this.slot.qc.classList.toggle('hidden', !qc);
     ShipDetail.setVisible(ship);
+    CntrDetail.setVisible(ship);
     QcDetail.setVisible(qc);
     this.el.dataset.mode = ship ? 'ship' : 'qc';
     this.col.classList.add('detail-open');
@@ -681,6 +684,119 @@ const QcDetail = {
 };
 
 
+const CntrDetail = {
+  id: null,
+  cache: {},                     // { [voyage]: { rows, ts } }
+  REFRESH_MIN: 10,               // 每整十分钟对齐刷新
+  MANUAL_GAP_MS: 60 * 1000,      // 手动刷新最小间隔
+  timer: null,
+  btnTimer: null,                // 按钮冷却恢复用的定时器
+
+  init() {
+    this.el = {
+      body: document.getElementById('cntr-body'),
+      time: document.getElementById('cntr-time'),
+      btn:  document.getElementById('cntr-refresh'),
+    };
+    this.el.btn.addEventListener('click', () => this.load(true));
+  },
+
+  /** 打开船舶面板（刷新）或面板内切换船只（缓存优先）*/
+  async show(id, force = false) {
+    this.id = String(id);
+    this._arm();
+    const hit = this.cache[this.id];
+    if (hit && !force) { this.render(hit.rows, hit.ts); return; }   // 只换显示，不发请求
+    if (!hit) this.el.body.innerHTML = '<span class="cntr-empty">加载中…</span>';
+    await this.load();
+  },
+
+  /** 隐藏时收尾：清当前航次 + 定时器 */
+  setVisible(v) {
+    if (v) return;
+    this.id = null;
+    clearTimeout(this.timer);    this.timer = null;
+    clearTimeout(this.btnTimer); this.btnTimer = null;
+  },
+
+  /** 对齐到下一个整十分钟（:00/:10/:20…）自动刷新 */
+  _arm() {
+    clearTimeout(this.timer);
+    const MS = this.REFRESH_MIN * 60_000;
+    this.timer = setTimeout(() => { this.load(); this._arm(); }, MS - (Date.now() % MS) + 300);
+  },
+
+  /** 按钮冷却：数据查过后按钮禁用，到期自动恢复 */
+  _cool() {
+    clearTimeout(this.btnTimer);
+    const left = this.MANUAL_GAP_MS - (Date.now() - (this.cache[this.id]?.ts || 0));
+    this.el.btn.disabled = left > 0;
+    if (left > 0) this.btnTimer = setTimeout(() => { this.el.btn.disabled = false; }, left + 200);
+  },
+
+  /** manual=true 手动刷新：60s 内不重复查 */
+  async load(manual = false) {
+    if (!this.id) return;
+    if (manual && Date.now() - (this.cache[this.id]?.ts || 0) < this.MANUAL_GAP_MS) return;
+    if (manual) this.el.btn.disabled = true;              // 请求在途，防连点
+
+    const data = await fetch(`api/ship_cntr?voyage=${encodeURIComponent(this.id)}`,
+                             { cache: 'no-store' })
+                       .then(r => r.ok ? r.json() : null)
+                       .catch(() => null);
+    if (!data || String(data.voyage) !== String(this.id)) {
+      this._cool();                                       // 失败/过期：只恢复按钮，表格保持原样
+      return;
+    }
+    if (data.ts) this.cache[this.id] = { rows: data.rows || [], ts: data.ts };
+    const { rows = [], ts = 0 } = this.cache[this.id] || {};
+    this.render(rows, ts);
+  },
+
+  render(rows, ts) {
+    const el = this.el;
+    el.time.textContent = ts ? `数据时间 ${fmtTs(ts).slice(-5)}` : '';
+    this._cool();
+    if (!rows.length) {
+      el.body.innerHTML = '<span class="cntr-empty">暂无数据</span>';
+      return;
+    }
+    const portOf = r => r.port_nam ?? (r.disc_port === '-' ? '未定' : r.disc_port);
+
+    const ports = [...new Set(rows.map(portOf))].sort((a, b) => a.localeCompare(b, 'zh'));
+    const byArea = new Map();                       // area → Map(port → cnt)
+    for (const r of rows) {
+      const m = byArea.get(r.area) ?? new Map();
+      m.set(portOf(r), (m.get(portOf(r)) ?? 0) + r.cnt);
+      byArea.set(r.area, m);
+    }
+    const areas = [...byArea.keys()]
+      .sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }));
+
+    const colSum = new Map();
+    for (const m of byArea.values())
+      for (const [p, n] of m) colSum.set(p, (colSum.get(p) ?? 0) + n);
+    const grand = [...colSum.values()].reduce((s, n) => s + n, 0);
+
+    el.body.innerHTML = `<table class="cntr-table">
+      <thead><tr><th>场区</th>${ports.map(p => `<th>${escapeHtml(p)}</th>`).join('')}<th class="ct-sum">合计</th></tr></thead>
+      <tbody>${areas.map(a => {
+        const m   = byArea.get(a);
+        const sum = [...m.values()].reduce((s, n) => s + n, 0);
+        return `<tr><td>${escapeHtml(a)}</td>`
+             + ports.map(p => `<td>${m.get(p) ?? ''}</td>`).join('')
+             + `<td class="ct-sum">${sum}</td></tr>`;
+      }).join('')}</tbody>
+      <tfoot><tr>
+        <td>合计</td>
+        ${ports.map(p => `<td>${colSum.get(p) ?? ''}</td>`).join('')}
+        <td class="ct-sum">${grand}</td>
+      </tr></tfoot>
+    </table>`;
+  },
+};
+
+
 /* ============================================================
    Cards
    ============================================================ */
@@ -872,6 +988,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   Ships.init();
   DetailPanel.init();
   ShipDetail.init();
+  CntrDetail.init()
   Charts.init();
   State._initShipProgPct();
   await Config.load();
