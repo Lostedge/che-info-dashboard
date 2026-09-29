@@ -59,7 +59,9 @@
               <label for="sd-endtime">预计完工时间</label>
               <input type="datetime-local" id="sd-endtime">
             </span>
-            <button id="sd-close" class="sd-close" type="button">×</button>
+            <button id="sd-close" class="sd-close" type="button" aria-label="关闭">
+              <span class="icon icon-x" aria-hidden="true"></span>
+            </button>
           </div>
           <div class="sd-chart-wrap"><canvas id="sd-chart"></canvas></div>
           <div class="sd-cntr">
@@ -68,7 +70,11 @@
                 <span>船舶出口箱分布</span>
                 <span class="sd-cntr-time" id="cntr-time"></span>
               </div>
-              <button id="cntr-refresh" class="panel-expand" type="button">刷新</button>
+              <button id="cntr-refresh" class="panel-expand" type="button" aria-label="刷新">
+                <span class="icon icon-refresh" aria-hidden="true"></span>
+                <span class="icon icon-refresh-off" aria-hidden="true"></span>
+                <span>刷新</span>
+              </button>
             </div>
             <div class="sd-cntr-body" id="cntr-body"><span class="cntr-empty">暂无数据</span></div>
           </div>
@@ -77,7 +83,9 @@
         <div class="detail-slot detail-qc hidden" id="qc-detail">
           <div class="detail-head qd-head">
             <span class="qd-title">岸桥作业详情</span>
-            <button id="qd-close" class="sd-close" type="button">×</button>
+            <button id="qd-close" class="sd-close" type="button" aria-label="关闭">
+              <span class="icon icon-x" aria-hidden="true"></span>
+            </button>
           </div>
           <div class="qd-body">
             <div class="qd-legend">
@@ -131,7 +139,10 @@
       <div class="right-section right-top">
         <div class="panel-header">
           <span class="panel-title">岸桥信息</span>
-          <button id="qc-expand" class="panel-expand" type="button" title="展开岸桥作业详情">详情</button>
+          <button id="qc-expand" class="panel-expand" type="button" title="展开岸桥作业详情">
+            <span class="icon icon-detail" aria-hidden="true"></span>
+            <span>详情</span>
+          </button>
           <span>当前在线 <span class="panel-count" id="qc-count">0</span></span>
         </div>
         <div class="card-list" id="qc-cards">

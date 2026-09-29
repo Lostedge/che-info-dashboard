@@ -18,6 +18,7 @@
   --c-surface:  #161b22;
   --c-surface2: #1c2333;
   --c-border:   #30363d;
+  --c-btn-bg: rgba(255, 255, 255, 0.04);
   --c-text:     #e6edf3;
   --c-soft:     #b0b8c0;
   --c-dim:      #8b949e;
@@ -51,6 +52,7 @@
   --gap:       1.2rem;         /* 1rem */
   --radius:    1rem;           /* 0.8rem */
   --radius-sm: 0.8rem;         /* 0.5rem */
+  --btn-h:     2.8rem;         /* 图标/文字按钮高度 */
 }
 
 html, body {
@@ -70,6 +72,25 @@ body {
   display: flex;
   flex-direction: column;
 }
+
+/* ============================================================
+   图标（Lucide SVG → mask，颜色随 currentColor）
+   ============================================================ */
+
+.icon {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  background-color: currentColor;
+  -webkit-mask-repeat: no-repeat;  mask-repeat: no-repeat;
+  -webkit-mask-position: center;   mask-position: center;
+  -webkit-mask-size: contain;      mask-size: contain;
+}
+
+.icon-x           { -webkit-mask-image: url("../libs/icons/x.svg");                  mask-image: url("../libs/icons/x.svg"); }
+.icon-detail      { -webkit-mask-image: url("../libs/icons/square-chart-gantt.svg"); mask-image: url("../libs/icons/square-chart-gantt.svg"); }
+.icon-refresh     { -webkit-mask-image: url("../libs/icons/refresh-cw.svg");         mask-image: url("../libs/icons/refresh-cw.svg"); }
+.icon-refresh-off { -webkit-mask-image: url("../libs/icons/refresh-cw-off.svg");     mask-image: url("../libs/icons/refresh-cw-off.svg"); }
 
 /* ============================================================
    HEADER
@@ -764,12 +785,38 @@ main {
 #sd-duration { width: 6rem; }
 #sd-endtime { width: 16rem; }
 
+/* 关闭按钮：方形图标按钮，hover 变红 */
 .sd-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--btn-h);
+  height: var(--btn-h);
+  padding: 0;
+  line-height: 1;
+  color: var(--c-soft);
   background: none;
-  border: none;
-  color: inherit;
-  font-size: 1.6rem;
+  border: 1px solid transparent;        /* 占位，避免 hover 时出现位移 */
+  border-radius: var(--radius-sm);
   cursor: pointer;
+  transition: color .18s, background-color .18s, border-color .18s;
+}
+
+.sd-close .icon { width: 1.6rem; height: 1.6rem; }
+
+.sd-close:hover {
+  color: var(--c-red);
+  background-color: rgba(248, 81, 73, .14);
+  border-color: rgba(248, 81, 73, .45);
+}
+
+.sd-close:active { background-color: rgba(248, 81, 73, .26); }
+
+.sd-close:focus-visible,
+.panel-expand:focus-visible {
+  outline: 2px solid var(--c-blue);
+  outline-offset: 1px;
 }
 
 .sd-chart-wrap  {
@@ -865,6 +912,13 @@ main {
 .cntr-table .ct-sum { font-weight: 700; }
 .cntr-empty { font-size: 1.3rem; color: var(--c-dim); }
 
+#cntr-refresh { margin-left: auto; margin-right: 0; }
+
+/* 可用 = refresh-cw，禁用 = refresh-cw-off */
+#cntr-refresh .icon-refresh-off          { display: none; }
+#cntr-refresh:disabled .icon-refresh     { display: none; }
+#cntr-refresh:disabled .icon-refresh-off { display: inline-block; }
+
 /* 刷新按钮禁用 */
 .panel-expand:disabled,
 .panel-expand:disabled:hover {
@@ -933,23 +987,33 @@ main {
 
 .qd-empty.hidden { display: none; }
 
-/* qc_detail 展开按钮 */
+/* qc_detail 展开按钮 / 在场箱刷新按钮 */
 .panel-expand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: var(--btn-h);
+  padding: 0 0.9rem;
+  line-height: 1;
   font-family: inherit;
-  background: none;
-  border: 1px solid var(--c-border);
-  border-radius: 0.4rem;
-  color: var(--c-soft);
   font-size: 1.3rem;
-  padding: 0.2rem 0.8rem;
+  color: var(--c-soft);
+  border: 1px solid var(--c-border);
+  background-color: var(--c-btn-bg);
+  border-radius: var(--radius-sm);
   cursor: pointer;
   margin-left: 1rem;
   margin-right: auto;
+  transition: color .18s, background-color .18s, border-color .18s;
 }
+
+.panel-expand .icon { width: 1.4rem; height: 1.4rem; }
 
 .panel-expand:hover {
   color: var(--c-text);
   border-color: var(--c-dim);
+  background-color: rgba(255, 255, 255, .04);
 }
 
 .qd-head .sd-close { margin-left: auto; }
