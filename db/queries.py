@@ -149,29 +149,47 @@ QC_MOVE_HOUR = """
 """
 
 # 查询某航次装船箱分布：按 场区/卸港/空重/尺寸 统计
-# voyage → 出口航次 SHIP_NO（E）→ 该船号下的在场箱
+# voyage → 出口航次 SHIP_NO（E）→ 该船号下的在场箱 ∩ 视图成员（ship_baplie / ship_ncl）
 SHIP_CNTR_SUM = """
     SELECT g.disc_port,
-           p.C_PORT_NAM                                                 AS port_nam,
+           NVL(p.C_PORT_NAM, g.disc_port)   AS port_nam,
            g.ef,
            g.siz,
            g.area,
            g.cnt
     FROM (
-        SELECT NVL(c.DISC_PORT_COD, '-')                                AS disc_port,
-               NVL(c.E_F_ID, '-')                                       AS ef,
-               c.CNTR_SIZ_COD                                           AS siz,
-               NVL(c.CY_AREA_NO, '-')                                   AS area,
-               COUNT(*)                                                 AS cnt
+        SELECT NVL(c.DISC_PORT_COD, '-')    AS disc_port,
+               NVL(c.E_F_ID, '-')           AS ef,
+               c.CNTR_SIZ_COD               AS siz,
+               NVL(c.CY_AREA_NO, '-')       AS area,
+               COUNT(*)                     AS cnt
         FROM JZCT_TOS.PORT_CNTR c
         WHERE c.SHIP_NO IN (
                 SELECT s.SHIP_NO
                 FROM JZCT_TOS_HIS.SHIP s
                 WHERE s.VOYAGE_NO IN ({voyages})
                   AND s.I_E_ID = 'E'
-              )
-        GROUP BY NVL(c.DISC_PORT_COD, '-'), NVL(c.E_F_ID, '-'),
-                 c.CNTR_SIZ_COD, c.CY_AREA_NO
+            )
+          AND (EXISTS (
+                    SELECT 1
+                    FROM JZCT_TOS.SHIP_BAPLIE a
+                    WHERE a.ship_no = c.ship_no
+                      AND a.cntr = c.cntr
+                      AND a.cntr_class IN ('I', 'T')
+                      AND NVL(a.miss_id, '0') <> '1'
+                )
+            OR EXISTS (
+                    SELECT 1
+                    FROM JZCT_TOS.SHIP_NCL a
+                    WHERE a.ship_no = c.ship_no
+                      AND a.cntr = c.cntr
+                      AND a.cntr_class IN ('E', 'T')
+                      AND NVL(a.exit_custom_id, '0') = '0'
+                ))
+        GROUP BY NVL(c.DISC_PORT_COD, '-'),
+                 NVL(c.E_F_ID, '-'),
+                 c.CNTR_SIZ_COD,
+                 NVL(c.CY_AREA_NO, '-')
     ) g
     LEFT JOIN JZCT_CODE.C_PORT p ON p.PORT_COD = g.disc_port
     ORDER BY g.area, g.disc_port, g.ef, g.siz
