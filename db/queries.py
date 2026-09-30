@@ -41,19 +41,31 @@ QC_STATS = """
     ORDER BY SHIP_MACH_NO
 """
 
-# 堆场设备信息（RTG、FL；FL 附位置 area/bay）
+# 堆场设备信息（RTG、FL；FL 附位置 area/bay；附当前作业航次 voyage）
+# voyage = 最近 10min 内装卸船指令（SI/SO）的 TOOL_NO → SHIP.SHIP_NO → VOYAGE_NO
 YM_INFO = """
     SELECT
         SUBSTR(p.MACH_NO, -3)                       AS id,
         p.CURRENT_ID                                AS status,
         COALESCE(o.OPER_NAM, p.MACH_OPER_COD)       AS driver,
         p.WORK_WAY                                  AS work_way,
-        CASE WHEN p.MACH_NO LIKE 'DGJ%' 
+        CASE WHEN p.MACH_NO LIKE 'DGJ%'
              THEN p.CUR_CY_AREA_NO END              AS area,
-        CASE WHEN p.MACH_NO LIKE 'DGJ%' 
-             THEN p.CUR_CY_BAY_NO  END              AS bay
+        CASE WHEN p.MACH_NO LIKE 'DGJ%'
+             THEN p.CUR_CY_BAY_NO  END              AS bay,
+        s.VOYAGE_NO                                 AS voyage
     FROM JZCT_TOS.CY_MACH_PLAC p
     LEFT JOIN JZCT_CODE.C_OPERATOR o ON p.MACH_OPER_COD = o.OPER_COD
+    LEFT JOIN (
+        SELECT CY_MACH_NO,
+               MAX(TOOL_NO) KEEP (DENSE_RANK LAST ORDER BY WORK_TIM) AS ship_no
+        FROM JZCT_TOS.CY_COMMAND
+        WHERE WORK_TIM >= SYSDATE - INTERVAL '10' MINUTE
+          AND QUEUE_TYP IN ('SI', 'SO')
+          AND TOOL_NO IS NOT NULL
+        GROUP BY CY_MACH_NO
+    ) l ON l.CY_MACH_NO = p.MACH_NO
+    LEFT JOIN JZCT_TOS_HIS.SHIP s ON s.SHIP_NO = l.ship_no
     WHERE p.MACH_NO LIKE 'CQ%'
        OR p.MACH_NO LIKE 'DGJ%'
 """

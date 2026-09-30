@@ -153,6 +153,8 @@ class Scheduler:
                 continue
             if push_type == 'qc_info':
                 self._normalize_qc_ship(data)
+            elif push_type == 'ym_info':
+                self._merge_ym_voyage(data)
             self._push(label, push_type, data)
         
         self._fetch_ship(executor)
@@ -396,6 +398,14 @@ class Scheduler:
             n = (r.get('ship_name') or '').strip()
             if n:
                 r['ship_name'] = cls._foreign_base(n) or n
+
+    def _merge_ym_voyage(self, rows: list):
+        """堆场设备的 voyage：外贸船航次 → 主船航次；
+        无作业船时置空串（execute() 丢弃 None 字段，前端 Object.assign 不会清旧值）"""
+        aliases = self._ship_aliases if self.merge_foreign_ships else {}
+        for r in rows:
+            v = str(r.get('voyage') or '')
+            r['voyage'] = aliases.get(v, v) if v else ''
 
     def _build_aliases(self, ships: list) -> dict:
         """外贸船 id -> 主船 id；不合并时返回 {}"""
