@@ -371,17 +371,16 @@ main {
   color: var(--c-dim);
 }
 
-/* 选中船舶时高亮设备卡片 */
-#qc-cards.has-active .card-qc:not(.is-active) {
+/* 选中船舶时高亮作业该船的设备卡片（岸桥 / 场桥 / 堆高机） */
+#qc-cards.has-active  .card:not(.is-active),
+#rtg-cards.has-active .card:not(.is-active),
+#fl-cards.has-active  .card:not(.is-active) {
   opacity: .60;
 }
 
-#qc-cards .card-qc.is-active:not(.offline) {
-  border-color: var(--c-blue);
-  background-color: #232c40;
-}
-
-#qc-cards .card-qc.is-active:hover {
+#qc-cards  .card.is-active:not(.offline),
+#rtg-cards .card.is-active:not(.offline),
+#fl-cards  .card.is-active:not(.offline) {
   border-color: var(--c-blue);
   background-color: #232c40;
 }

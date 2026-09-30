@@ -70,6 +70,12 @@ function devicesOfShip(ship, list) {
   return (list || []).filter(d => String(d.voyage ?? '') === id);
 }
 
+/** 卡片列表：配置键 → 设备 id 首位 / 列表元素 / 计数元素 */
+const CARD_LISTS = {
+  qc:  { prefix: '1', listId: 'qc-cards',  countId: 'qc-count'  },
+  rtg: { prefix: '2', listId: 'rtg-cards', countId: 'rtg-count' },
+  fl:  { prefix: '3', listId: 'fl-cards',  countId: 'fl-count' },
+};
 
 /* ============================================================
    State
@@ -490,9 +496,8 @@ const DetailPanel = {
 
   /** 标记当前展开的船舶卡片和相关作业设备卡片 */
   _markActive(id = this.mode === 'ship' ? ShipDetail.id : null) {
-    const info   = document.getElementById('ship-info');
-    const qcList = document.getElementById('qc-cards');
-    const ship   = id != null ? State.ships.find(s => String(s.id) === String(id)) : null;
+    const info = document.getElementById('ship-info');
+    const ship = id != null ? State.ships.find(s => String(s.id) === String(id)) : null;
 
     if (info) {
       info.classList.toggle('has-active', id != null);
@@ -501,13 +506,16 @@ const DetailPanel = {
       });
     }
 
-    // 岸桥卡片：只高亮"此刻正在作业该船"的岸桥
-    const working = new Set(
-      devicesOfShip(ship, filterByConfig(State.getByType('1'), 'qc')).map(d => String(d.id))
-    );
-    if (qcList) {
-      qcList.classList.toggle('has-active', working.size > 0);
-      qcList.querySelectorAll('.card-qc').forEach(el => {
+    // 岸桥 / 场桥 / 堆高机：只高亮"此刻正在作业该船"的设备
+    for (const [type, cfg] of Object.entries(CARD_LISTS)) {
+      const listEl = document.getElementById(cfg.listId);
+      if (!listEl) continue;
+      const working = new Set(
+        devicesOfShip(ship, filterByConfig(State.getByType(cfg.prefix), type))
+          .map(d => String(d.id))
+      );
+      listEl.classList.toggle('has-active', working.size > 0);
+      listEl.querySelectorAll('.card').forEach(el => {
         el.classList.toggle('is-active', working.has(String(el.dataset.id)));
       });
     }
@@ -820,11 +828,7 @@ const CntrDetail = {
 const Cards = {
   /** @param {'rtg'|'qc'|'fl'} type */
   render(type, devices) {
-    const cfg = {
-      rtg: { listId: 'rtg-cards', countId: 'rtg-count' },
-      qc:  { listId: 'qc-cards',  countId: 'qc-count'  },
-      fl:  { listId: 'fl-cards',  countId: 'fl-count'  },
-    }[type];
+    const cfg = CARD_LISTS[type];
     if (!cfg) return;
 
     // 在线数量
@@ -834,9 +838,11 @@ const Cards = {
     const listEl = document.getElementById(cfg.listId);
     if (!devices.length) {
       listEl.innerHTML = '<div class="card-placeholder">暂无数据</div>';
+      DetailPanel._markActive();        // 空列表清掉残留高亮
       return;
     }
     listEl.innerHTML = devices.map(d => this._card(type, d)).join('');
+    DetailPanel._markActive();          // 重建 DOM 后恢复 is-active
   },
 
   _card(type, d) {
