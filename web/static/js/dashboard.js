@@ -63,16 +63,11 @@ function filterByConfig(devices, type) {
   return ids ? devices.filter(d => ids.includes(d.id)) : devices;
 }
 
-/** 取属于该船的岸桥 */
-function qcsOfShip(ship, list) {
+/** 取属于该船的作业设备 */
+function devicesOfShip(ship, list) {
   if (!ship) return [];
-  const name = String(ship.ship_name ?? '');
-  return (list || []).filter(d => {
-    const n = String(d.ship_name ?? '').trim();
-    return n !== '' && (n === name
-      || n === name + '外'          // 兜底：后端尚未归并时的外贸船
-      || n === String(ship.id));    // ship_name 取到航次号的情况
-  });
+  const id = String(ship.id ?? '');
+  return (list || []).filter(d => String(d.voyage ?? '') === id);
 }
 
 
@@ -508,7 +503,7 @@ const DetailPanel = {
 
     // 岸桥卡片：只高亮"此刻正在作业该船"的岸桥
     const working = new Set(
-      qcsOfShip(ship, filterByConfig(State.getByType('1'), 'qc')).map(d => String(d.id))
+      devicesOfShip(ship, filterByConfig(State.getByType('1'), 'qc')).map(d => String(d.id))
     );
     if (qcList) {
       qcList.classList.toggle('has-active', working.size > 0);
@@ -660,7 +655,7 @@ const QcDetail = {
     if (this.scope !== 'ship') return qcs.map(d => d.id);
 
     const ship = State.ships.find(s => String(s.id) === String(this.id));
-    const live = new Set(qcsOfShip(ship, qcs).map(d => String(d.id)));        // 正在作业
+    const live = new Set(devicesOfShip(ship, qcs).map(d => String(d.id)));   // 正在作业
     const past = new Set((State.qcMoves[this.id] || []).map(r => String(r.id))); // 作业过
     return qcs.filter(d => live.has(String(d.id)) || past.has(String(d.id))).map(d => d.id);
   },
@@ -849,7 +844,7 @@ const Cards = {
     const st     = this._machState(d);
     const stateCls = st === 'online' ? '' : ` ${st}`;
     const loc    = this._loc(type, d);
-    const ship   = (d.ship_name || '').slice(0, 10);
+    const ship   = this._shipLabel(d.ship_name);
     const way    = this._workWay(d.work_way, type);
 
     return `<div class="card card-${type}${stateCls}" data-id="${esc(d.id)}">
@@ -876,6 +871,10 @@ const Cards = {
     if (d.area) return d.area;
     if (d.bay)  return d.bay;
     return '';
+  },
+
+  _shipLabel(name) {
+    return String(name ?? '').trim().replace(/外$/, '');
   },
 
   /** 设备状态：'online' | 'fault' | 'offline' */

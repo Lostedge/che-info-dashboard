@@ -151,10 +151,7 @@ class Scheduler:
             data = self._try_query(label, fetcher)
             if data is None:
                 continue
-            if push_type == 'qc_info':
-                self._normalize_qc_ship(data)
-            elif push_type == 'ym_info':
-                self._merge_ym_voyage(data)
+            self._merge_device_ship(data)
             self._push(label, push_type, data)
         
         self._fetch_ship(executor)
@@ -391,17 +388,9 @@ class Scheduler:
         """外贸船名去掉末尾的“外”后缀"""
         return name[:-1] if name.endswith('外') else None
 
-    @classmethod
-    def _normalize_qc_ship(cls, rows: list):
-        """岸桥的 ship_name 并入主船名（去尾部“外”），便于前端与船舶卡片直接匹配"""
-        for r in rows:
-            n = (r.get('ship_name') or '').strip()
-            if n:
-                r['ship_name'] = cls._foreign_base(n) or n
-
-    def _merge_ym_voyage(self, rows: list):
-        """堆场设备的 voyage：外贸船航次 → 主船航次；
-        无作业船时置空串（execute() 丢弃 None 字段，前端 Object.assign 不会清旧值）"""
+    def _merge_device_ship(self, rows: list):
+        """设备归属：voyage 归并到主船航次（外贸船），无作业船时置空串
+        ship_name 保持原始值，尾缀“外”由展示层处理"""
         aliases = self._ship_aliases if self.merge_foreign_ships else {}
         for r in rows:
             v = str(r.get('voyage') or '')
