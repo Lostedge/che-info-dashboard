@@ -88,9 +88,9 @@ class QueryExecutor:
         sql = queries.SHIFT_DETECT_CY if kind == 'cy' else queries.SHIFT_DETECT_QC
         return self.execute(sql, {'check_time': check_time, 'lookback': lookback})
 
-    def get_ym_info(self) -> Optional[list[dict]]:
+    def get_ym_info(self, voyage_window: int = 15) -> Optional[list[dict]]:
         """获取堆场设备信息"""
-        return self.execute(queries.YM_INFO, {})
+        return self.execute(queries.YM_INFO, {'voyage_window': int(voyage_window)})
 
     def get_qc_info(self) -> Optional[list[dict]]:
         """获取岸桥设备信息"""

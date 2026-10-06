@@ -63,6 +63,9 @@ class Scheduler:
         self.merge_foreign_ships = config.get('ship', {}).get('merge_foreign_ships', True)
         self._ship_aliases: dict = {}      # 外贸船航次 → 主船航次，含刚离港但主船仍在的旧映射
 
+        # 场桥/堆高机"当前作业航次"回溯窗口（分钟）
+        self.voyage_window = int(config.get('device_voyage', {}).get('minutes', 15))
+
         # 岸桥 move 数
         qc_move_cfg = config.get('qc_move', {})
         self.qc_move_hours = qc_move_cfg.get('hours', 24)
@@ -157,11 +160,11 @@ class Scheduler:
         self.logger.info("获取设备信息...")
         executor = QueryExecutor()
 
-        for label, fetcher, push_type in [
-            ('YM', executor.get_ym_info, 'ym_info'),
+        for label, fetch, push_type in [
+            ('YM', lambda: executor.get_ym_info(self.voyage_window), 'ym_info'),
             ('QC', executor.get_qc_info, 'qc_info'),
         ]:
-            data = self._try_query(label, fetcher)
+            data = self._try_query(label, fetch)
             if data is None:
                 continue
             self._merge_device_ship(data)

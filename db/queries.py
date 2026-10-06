@@ -42,7 +42,7 @@ QC_STATS = """
 """
 
 # 堆场设备信息（RTG、FL；FL 附位置 area/bay；附当前作业航次 voyage）
-# voyage = 最近 10min 内装卸船指令（SI/SO）的 TOOL_NO → SHIP.SHIP_NO → VOYAGE_NO
+# voyage = 最近 :voyage_window 分钟内装卸船指令（SI/SO）的 TOOL_NO → SHIP.SHIP_NO → VOYAGE_NO
 YM_INFO = """
     SELECT
         SUBSTR(p.MACH_NO, -3)                       AS id,
@@ -60,7 +60,7 @@ YM_INFO = """
         SELECT CY_MACH_NO,
                MAX(TOOL_NO) KEEP (DENSE_RANK LAST ORDER BY WORK_TIM) AS ship_no
         FROM JZCT_TOS.CY_COMMAND
-        WHERE WORK_TIM >= SYSDATE - INTERVAL '10' MINUTE
+        WHERE WORK_TIM >= SYSDATE - :voyage_window / 1440
           AND QUEUE_TYP IN ('SI', 'SO')
           AND TOOL_NO IS NOT NULL
         GROUP BY CY_MACH_NO
