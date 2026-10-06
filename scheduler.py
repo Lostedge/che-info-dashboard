@@ -14,6 +14,19 @@ from db import QueryExecutor
 PORT_CNTR_TTL = 24 * 3600           # 在场箱缓存保留时长（秒）
 PORT_CNTR_MIN_INTERVAL = 30         # 同一航次两次真查询的最小间隔（秒）
 
+# 设备信息推送前整形规则：设备编号首位 → 去重后保留
+# 1xx 岸桥 / 2xx 场桥 / 3xx 堆高机（与前端 CARD_LISTS.prefix、getByType 同约定）
+#   fill：SQL 唯一来源的展示字段，NULL 需归一化为空串（见 _shape_device）
+#   drop：该字段不由 SQL 提供，显式移除（场桥定位来自 MQTT）
+# 未列出字段：
+#   id / status —— SQL 保证非 NULL
+#   voyage      —— 由 _merge_device_ship 无条件写入（含空串）
+DEVICE_SHAPE = {
+    '1': {'fill': ('driver', 'work_way', 'bay', 'ship_name'), 'drop': ()},
+    '2': {'fill': ('driver', 'work_way'),                     'drop': ('area', 'bay')},
+    '3': {'fill': ('driver', 'work_way', 'area', 'bay'),      'drop': ()},
+}
+
 
 class Scheduler:
     """定时调度器"""
@@ -152,6 +165,7 @@ class Scheduler:
             if data is None:
                 continue
             self._merge_device_ship(data)
+            self._shape_device(data)
             self._push(label, push_type, data)
         
         self._fetch_ship(executor)
@@ -387,6 +401,18 @@ class Scheduler:
     def _foreign_base(name: str):
         """外贸船名去掉末尾的“外”后缀"""
         return name[:-1] if name.endswith('外') else None
+
+    @staticmethod
+    def _shape_device(rows: list):
+        """设备信息推送前整形（岸桥 / 场桥 / 堆高机共用，规则见 DEVICE_SHAPE）"""
+        for r in rows:
+            rule = DEVICE_SHAPE.get(str(r.get('id', ''))[:1])
+            if rule is None:
+                continue
+            for f in rule['drop']:
+                r.pop(f, None)
+            for f in rule['fill']:
+                r[f] = r.get(f) or ''
 
     def _merge_device_ship(self, rows: list):
         """设备归属：voyage 归并到主船航次（外贸船），无作业船时置空串
