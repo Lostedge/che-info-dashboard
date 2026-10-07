@@ -35,6 +35,11 @@
     "breaks": [0, 1, 8, 15, 22, 30],
     "colors": ["#3f4a5b", "#fa8a8a", "#fca55c", "#fddb6b", "#68e39c", "#10b981"],
     "darkFrom": 1,
-    "unit": "move"
+    "unit": "move",
+
+    "light": {
+      "colors": ["#dbeafe", "#fecaca", "#fed7aa", "#fef08a", "#bbf7d0", "#34d399"],
+      "darkFrom": 0
+    }
   }
 }

@@ -102,6 +102,46 @@ const Auth = {
 
 
 /* ============================================================
+   Theme - 亮/暗主题切换
+   初值由 js/theme.js 在 head 中写入 html[data-theme]，此处只读取与切换
+   ============================================================ */
+
+const Theme = {
+  KEY: 'theme',
+  current: 'dark',
+
+  init() {
+    this.current = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+
+    const btn = document.getElementById('theme-toggle');
+    if (!btn) return;
+    btn.addEventListener('click', () => this.toggle());
+    this._sync(btn);
+  },
+
+  toggle() { this.set(this.current === 'light' ? 'dark' : 'light'); },
+
+  set(theme) {
+    this.current = theme === 'light' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = this.current;
+    try { localStorage.setItem(this.KEY, this.current); }
+    catch (e) { /* localStorage 满/被禁用时不致命 */ }
+
+    const btn = document.getElementById('theme-toggle');
+    if (btn) this._sync(btn);
+    Charts.refreshTheme();        // Chart.js 把颜色烘进实例，必须重建
+  },
+
+  /** 提示语指向"将要切到的"主题；图标由 CSS 依 data-theme 切换 */
+  _sync(btn) {
+    const label = `切换到${this.current === 'light' ? '暗色' : '亮色'}主题`;
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
+  },
+};
+
+
+/* ============================================================
    State
    ============================================================ */
 
@@ -1049,6 +1089,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   Charts.init();
   State._initShipProgPct();
   Auth.apply();               // 首帧即按最小权限隐藏入口，避免闪出后又收回
+  Theme.init();               // 初值已在 head 中生效，这里只绑定按钮
   await Config.load();
   SSEClient.init();
 });

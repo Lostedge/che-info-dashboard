@@ -3,16 +3,19 @@ Lucide 图标来源说明
 
 来源      : https://lucide.dev  ·  https://github.com/lucide-icons/lucide
 包 / 版本 : lucide-static v1.48.0
-            package.json 的 version 字段获取；本目录 LICENSE 中的版权年份为 2026）
-本次使用  : x.svg, refresh-cw.svg, refresh-cw-off.svg, square-chart-gantt.svg
-获取日期  : 2026-09-29
+            （版本号取自 package.json 的 version 字段；本目录 LICENSE 中的
+            版权年份为 2026）
+本次使用  : x.svg, refresh-cw.svg, refresh-cw-off.svg, square-chart-gantt.svg,
+            sun.svg, moon.svg（亮/暗主题切换按钮）
+获取日期  : 2026-09-29（sun.svg / moon.svg 于 2026-10-07 补入）
 用途      : 看板按钮图标（CSS mask 取形，颜色随 currentColor）
 
 许可      : ISC + MIT
             完整许可正文见同目录 LICENSE。
-            x.svg 位于 LICENSE 中的 Feather 派生清单内，因此同时受
-            MIT 部分（Copyright (c) 2013-present Cole Bemis）约束；
-            refresh-cw / refresh-cw-off / square-chart-gantt 为纯 Lucide 图标。
+            x.svg 与 moon.svg 位于 LICENSE 中的 Feather 派生清单内，因此
+            同时受 MIT 部分（Copyright (c) 2013-present Cole Bemis）约束；
+            refresh-cw / refresh-cw-off / square-chart-gantt / sun.svg 为
+            纯 Lucide 图标（sun 不在该清单内，仅受 ISC 约束）。
 
 说明      : 本目录下 SVG 为 Lucide 官方文件原样副本（含其自带的 width/height
             与 class 属性），几何数据未作修改。

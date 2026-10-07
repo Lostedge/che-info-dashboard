@@ -5,11 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>机械设备监控看板</title>
 <link rel="stylesheet" href="css/dashboard.css">
+<script src="js/theme.js"></script>
 </head>
 <body>
 
   <!-- ========== HEADER ========== -->
   <header>
+    <div class="header-left">
+      <button id="theme-toggle" class="theme-toggle" type="button"
+              title="切换亮色 / 暗色主题" aria-label="切换亮色 / 暗色主题">
+        <span class="icon icon-moon" aria-hidden="true"></span>
+        <span class="icon icon-sun"  aria-hidden="true"></span>
+      </button>
+    </div>
     <h1 class="title">机械设备监控看板</h1>
     <div class="header-right">
       <div class="datetime">

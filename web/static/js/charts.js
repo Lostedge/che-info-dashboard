@@ -131,7 +131,29 @@ function chartColors() {
     soft:     s.getPropertyValue('--c-soft').trim() || '#b0b8c0',
     dim:      s.getPropertyValue('--c-dim').trim() || '#8b949e',
     grid:     s.getPropertyValue('--c-border').trim() || '#30363d',
+    /* 船舶详情 */
+    ship:        s.getPropertyValue('--chart-ship').trim()          || '#4cc2ff',
+    shipBg:      s.getPropertyValue('--chart-ship-bg').trim()       || 'rgba(76,194,255,.15)',
+    ref:         s.getPropertyValue('--chart-ref').trim()           || '#ffd04c',
+    refBand:     s.getPropertyValue('--chart-ref-band').trim()      || 'rgba(139,148,158,.75)',
+    /* 数据标签底色 */
+    chip:        s.getPropertyValue('--chart-chip').trim()          || 'rgba(13,17,23,.75)',
+    /* 色块图 */
+    heatNull:    s.getPropertyValue('--chart-heat-null').trim()     || 'rgba(255,255,255,.03)',
+    heatGap:     s.getPropertyValue('--chart-heat-gap').trim()      || 'rgba(255,255,255,.09)',
+    heatOnDark:  s.getPropertyValue('--chart-heat-on-dark').trim()  || '#e6edf3',
+    heatOnLight: s.getPropertyValue('--chart-heat-on-light').trim() || '#0d1117',
   };
+}
+
+/**
+ * 按当前主题解析色阶配置
+ * config.json 的 qc_move_heat.light 为亮色覆盖（colors / darkFrom）
+ */
+function heatPalette(cfg) {
+  if (!cfg) return {};
+  const light = document.documentElement.dataset.theme === 'light';
+  return (light && cfg.light) ? { ...cfg, ...cfg.light } : cfg;
 }
 
 /** 线性插值两个 #rrggbb */
@@ -145,13 +167,15 @@ function mixHex(a, b, t) {
 /**
  * move 值 → 色阶颜色（配置分档）
  * @param v   吊数；null 表示该时段无数据
- * @param cfg config.json 的 qc_move_heat（breaks / colors）
+ * @param cfg config.json 的 qc_move_heat（breaks / colors），需先过 heatPalette()
+ * @param c   可选，chartColors() 结果；不传则现场读取
  * @returns {{ color: string, step: number }} step 为档位序号，-1 = 无数据
  */
-function qcHeatScale(v, cfg) {
+function qcHeatScale(v, cfg, c) {
+  const cc     = c ?? chartColors();
   const breaks = cfg?.breaks ?? [];
   const colors = cfg?.colors ?? [];
-  if (v == null || !breaks.length) return { color: 'rgba(255,255,255,.03)', step: -1 };
+  if (v == null || !breaks.length) return { color: cc.heatNull, step: -1 };
   if (v <= breaks[0]) return { color: colors[0] ?? '#3f4a5b', step: 0 };
 
   let i = 1;
@@ -214,7 +238,7 @@ function deviceChartDatasets(c) {
   /** 数据标签 */
   const chip = {
     font: { family: "'Segoe UI'", size: 13, weight: 'bold' },
-    backgroundColor: 'rgba(13, 17, 23, 0.75)',
+    backgroundColor: c.chip,
     borderRadius: 4,
     padding: { top: 3, right: 5, bottom: 3, left: 5 },
   };
@@ -277,14 +301,14 @@ function shipDetailOptions(c) {
 /** 船舶详情折线 datasets */
 function shipDetailDatasets(built, c, refLabel) {
   const band = {
-    borderColor: 'rgba(139, 148, 158, .75)',
+    borderColor: c.refBand,
     borderDash: [6, 4], pointRadius: 0, fill: false, borderWidth: 1,
   };
   return [
-    { label: '实际完成(合计)', data: built.actual, borderColor: '#4cc2ff',
-      backgroundColor: 'rgba(76,194,255,.15)', fill: true, spanGaps: true,
+    { label: '实际完成(合计)', data: built.actual, borderColor: c.ship,
+      backgroundColor: c.shipBg, fill: true, spanGaps: true,
       pointRadius: 1.5, tension: 0.25, borderWidth: 2 },
-    { label: refLabel, data: built.ref, borderColor: '#ffd04c',
+    { label: refLabel, data: built.ref, borderColor: c.ref,
       borderDash: [6, 4], pointRadius: 0, fill: false, borderWidth: 1.5 },
     { ...band, label: `−1h`, data: built.refEarly },
     { ...band, label: `+1h`, data: built.refLate },
@@ -317,8 +341,8 @@ function qcHeatOptions(c, cfg, xLabels, yLabels) {
         formatter: v => (v.v ?? 0) > 0 ? v.v : '',
         display: ctx => (ctx.dataset.data[ctx.dataIndex]?.v ?? 0) > 0,
         // 深色格用浅字、浅色格用深字
-        color: ctx => (qcHeatScale(ctx.dataset.data[ctx.dataIndex].v, cfg).step >= (cfg?.darkFrom ?? 3)
-          ? '#0d1117' : '#e6edf3'),
+        color: ctx => (qcHeatScale(ctx.dataset.data[ctx.dataIndex].v, cfg, c).step >= (cfg?.darkFrom ?? 3)
+          ? c.heatOnLight : c.heatOnDark),
       },
     },
     scales: {
@@ -335,7 +359,7 @@ function qcHeatOptions(c, cfg, xLabels, yLabels) {
     elements: {
       matrix: {
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,.09)',
+        borderColor: c.heatGap,
         borderRadius: 3,
         width:  ({ chart }) => ((chart.chartArea?.width ?? 0) /
                   Math.max(1, chart.options.scales.x.labels?.length || 0)) - GAP_X,
@@ -375,6 +399,28 @@ const Charts = {
         options: deviceChartOptions(c),
       });
     });
+  },
+
+  /**
+   * 主题切换后重建全部图表
+   * 用各实例已有的数据源（State）重建，避免到处写"逐字段刷颜色"的代码。
+   */
+  refreshTheme() {
+    for (const ch of [...Object.values(this.deviceCharts),
+                      ...Object.values(this.shipDetailCharts),
+                      ...Object.values(this.qcHeatCharts)]) {
+      ch.destroy();
+    }
+    this.deviceCharts = {};
+    this.shipDetailCharts = {};
+    this.qcHeatCharts = {};
+
+    this.initDeviceCharts();
+    this.updateDeviceChart('chart-rtg', filterByConfig(State.getByType('2'), 'rtg'));
+    this.updateDeviceChart('chart-fl',  filterByConfig(State.getByType('3'), 'fl'));
+    this.updateDeviceChart('chart-qc',  filterByConfig(State.getByType('1'), 'qc'));
+    this.syncDeviceAxis();          // 新实例没有 suggestedMax，不重新统一会有刻度跳变
+    DetailPanel.refresh();          // 详情面板已展开则重画；未展开为空操作
   },
 
   /** 更新指定设备作业量柱状图 @param {'chart-rtg'|'chart-qc'|'chart-fl'} chartId */
@@ -488,30 +534,30 @@ const Charts = {
 
   /** 岸桥色块图：有实例则原位更新，否则创建 */
   renderQcHeat(canvasId, { rows, yLabels }) {
-    const cfg = Config.data?.qc_move_heat ?? {};
+    const cfg     = heatPalette(Config.data?.qc_move_heat);   // 亮/暗色阶
     const xLabels = buildQcHeatLabels(cfg.hours ?? 12);
     const yIds    = yLabels ?? [];
     const cells   = buildQcHeatData(rows, xLabels, yIds);
+    const cc      = chartColors();                            // 闭包复用，避免逐格 getComputedStyle
 
     let chart = this.qcHeatCharts[canvasId];
     if (chart) {
       chart.options.scales.x.labels = xLabels;
       chart.options.scales.y.labels = yIds;
       chart.data.datasets[0].data = cells;
-      chart.data.datasets[0].backgroundColor = d => qcHeatScale(d.raw.v, cfg).color;
+      chart.data.datasets[0].backgroundColor = d => qcHeatScale(d.raw.v, cfg, cc).color;
       chart.update('none');
       return chart;
     }
 
     const canvas = document.getElementById(canvasId);
     if (!canvas || !yIds.length) return null;
-    const cc = chartColors();
     chart = new Chart(canvas.getContext('2d'), {
       type: 'matrix',
       data: {
         datasets: [{
           data: cells,
-          backgroundColor: d => qcHeatScale(d.raw.v, cfg).color,
+          backgroundColor: d => qcHeatScale(d.raw.v, cfg, cc).color,
         }],
       },
       options: qcHeatOptions(cc, cfg, xLabels, yIds),
@@ -527,9 +573,9 @@ const Charts = {
     if (chart) { chart.destroy(); delete this.qcHeatCharts[canvasId]; }
   },
 
-  /** 生成色阶条渐变（配置驱动） */
+  /** 生成色阶条渐变 */
   syncQcLegend() {
-    const cfg = Config.data?.qc_move_heat;
+    const cfg = heatPalette(Config.data?.qc_move_heat);
     const bar = document.getElementById('qd-legend-bar');
     if (!cfg || !bar) return;
     bar.style.background = `linear-gradient(90deg, ${(cfg.colors || []).slice(1).join(',')})`;

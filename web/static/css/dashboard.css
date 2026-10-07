@@ -12,18 +12,34 @@
 
 :root {
   font-size: calc(100vw / 192);
+  color-scheme: dark;                        /* 原生表单控件/滚动条跟随主题 */
 
-  /* ---- 配色 ---- */
+  /* ---- 配色（暗色，默认）---- */
   --c-bg:       #0d1117;
   --c-surface:  #161b22;
   --c-surface2: #1c2333;
   --c-border:   #30363d;
-  --c-btn-bg: rgba(255, 255, 255, 0.04);
+  --c-btn-bg:   rgba(255, 255, 255, 0.04);
   --c-text:     #e6edf3;
   --c-soft:     #b0b8c0;
   --c-dim:      #8b949e;
   --c-track:    #484f58;     /* #6e7681 */
   --c-muted:    #484f58;
+
+  /* 叠加层 / 交互态 / 分隔线 */
+  --c-hover:      rgba(255, 255, 255, 0.04);
+  --c-fill:       rgba(255, 255, 255, 0.03);
+  --c-active-bg:  #232c40;
+  --c-down-bg:    #1a2233;
+  --c-inner-line: rgba(255, 255, 255, 0.05);
+  --c-line-soft:  rgba(255, 255, 255, 0.30);
+  --c-red-bg:     rgba(248, 81, 73, 0.14);
+  --c-red-line:   rgba(248, 81, 73, 0.45);
+  --c-red-bg-2:   rgba(248, 81, 73, 0.26);
+
+  /* 阴影 */
+  --shadow-card:       0 0 0.8rem rgba(0, 0, 0, 0.35);
+  --shadow-card-hover: 0 0.4rem 1.2rem rgba(0, 0, 0, 0.55);
 
   /* 语义色 */
   --c-green:    #10b981;
@@ -38,11 +54,22 @@
   --ship-i:     #60a5fa;
   --ship-e:     #34d399;
 
-  /* 图表色 */
+  /* 图表色（charts.js 的 chartColors() 读取；改主题后必须重建图表）*/
   --chart-20:   #60a5fa;
   --chart-40:   #34d399;
   --chart-20-text: #93c5fd;
   --chart-40-text: #6ee7b7;
+  --chart-ship:         #4cc2ff;                   /* 船舶详情：实际完成 */
+  --chart-ship-bg:      rgba(76, 194, 255, 0.15);
+  --chart-ref:          #ffd04c;                   /* 船舶详情：参考线 */
+  --chart-ref-band:     rgba(139, 148, 158, 0.75); /* 船舶详情：±1h 参考带 */
+  --chart-chip:         rgba(13, 17, 23, 0.75);    /* 数据标签底色 */
+  --chart-heat-null:    rgba(72, 79, 88, 0.35);    /* 色块图：无数据格 */
+  --chart-heat-gap:     rgba(255, 255, 255, 0.09); /* 色块图：格间距 */
+  --chart-heat-on-dark: #e6edf3;                   /* 深色格上的文字 */
+  --chart-heat-on-light: #0d1117;                  /* 浅色格上的文字 */
+  --bar-total-from: #38bdf8;
+  --bar-total-to:   #22d3ee;
 
   /* ---- 尺寸 ---- */
   --header-h:  7rem;
@@ -53,6 +80,70 @@
   --radius:    1rem;           /* 0.8rem */
   --radius-sm: 0.8rem;         /* 0.5rem */
   --btn-h:     2.8rem;         /* 图标/文字按钮高度 */
+}
+
+/* ============================================================
+   由 <html data-theme="light"> 触发，见 js/theme.js 与 dashboard.js 的 Theme
+   ============================================================ */
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --c-bg:       #eef2f8;
+  --c-surface:  #ffffff;
+  --c-surface2: #f6f8fc;
+  --c-border:   #e2e8f0;
+  --c-btn-bg:   rgba(15, 23, 42, 0.05);
+  --c-text:     #0f172a;
+  --c-soft:     #475569;
+  --c-dim:      #64748b;
+  --c-track:    #cbd5e1;
+  --c-muted:    #cbd5e1;
+
+  --c-hover:      rgba(15, 23, 42, 0.045);
+  --c-fill:       rgba(15, 23, 42, 0.025);
+  --c-active-bg:  #e8effc;
+  --c-down-bg:    #dde7f8;
+  --c-inner-line: rgba(15, 23, 42, 0.07);
+  --c-line-soft:  rgba(15, 23, 42, 0.18);
+  --c-red-bg:     rgba(220, 38, 38, 0.10);
+  --c-red-line:   rgba(220, 38, 38, 0.35);
+  --c-red-bg-2:   rgba(220, 38, 38, 0.18);
+
+  --shadow-card:       0 1px 2px rgba(15, 23, 42, 0.05), 0 4px 12px rgba(15, 23, 42, 0.06);
+  --shadow-card-hover: 0 8px 24px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.07);
+
+  --c-green:    #0f9d58;
+  --c-amber:    #b45309;
+  --c-blue:     #2563eb;
+  --c-red:      #dc2626;
+
+  --ship-work:  #15803d;
+  --ship-berth: #b45309;
+  --ship-wait:  #1d4ed8;
+  --ship-i:     #2563eb;
+  --ship-e:     #059669;
+
+  --chart-20:      #3b82f6;
+  --chart-40:      #10b981;
+  --chart-20-text: #1d4ed8;
+  --chart-40-text: #047857;
+  --chart-ship:         #0284c7;
+  --chart-ship-bg:      rgba(2, 132, 199, 0.12);
+  --chart-ref:          #d97706;
+  --chart-ref-band:     rgba(100, 116, 139, 0.60);
+  --chart-chip:         rgba(255, 255, 255, 0.88);
+  --chart-heat-null:    #eceff4;
+  --chart-heat-gap:     rgba(15, 23, 42, 0.07);
+  --chart-heat-on-dark: #f8fafc;
+  --chart-heat-on-light: #0f172a;
+  --bar-total-from: #0ea5e9;
+  --bar-total-to:   #06b6d4;
+}
+
+/* 亮色下设备卡片仅靠底色区分不够，补一层描边 */
+:root[data-theme="light"] .card {
+  border-color: var(--c-border);
 }
 
 html, body {
@@ -91,6 +182,8 @@ body {
 .icon-detail      { -webkit-mask-image: url("../libs/icons/square-chart-gantt.svg"); mask-image: url("../libs/icons/square-chart-gantt.svg"); }
 .icon-refresh     { -webkit-mask-image: url("../libs/icons/refresh-cw.svg");         mask-image: url("../libs/icons/refresh-cw.svg"); }
 .icon-refresh-off { -webkit-mask-image: url("../libs/icons/refresh-cw-off.svg");     mask-image: url("../libs/icons/refresh-cw-off.svg"); }
+.icon-sun         { -webkit-mask-image: url("../libs/icons/sun.svg");                mask-image: url("../libs/icons/sun.svg"); }
+.icon-moon        { -webkit-mask-image: url("../libs/icons/moon.svg");               mask-image: url("../libs/icons/moon.svg"); }
 
 /* ============================================================
    HEADER
@@ -106,11 +199,50 @@ header {
   border-bottom: 1px solid var(--c-border);
 }
 
-/* 左侧占位 */
-header::before {
-  content: '';
+/* 左侧：主题切换 */
+.header-left {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
 }
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--btn-h);
+  height: var(--btn-h);
+  padding: 0;
+  line-height: 1;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--c-border);
+  background: var(--c-btn-bg);
+  color: var(--c-soft);
+  cursor: pointer;
+  transition: color .18s, background-color .18s, border-color .18s, transform .12s;
+}
+
+.theme-toggle .icon { width: 1.6rem; height: 1.6rem; }
+
+.theme-toggle:hover {
+  color: var(--c-text);
+  background: var(--c-hover);
+  border-color: var(--c-muted);
+}
+
+.theme-toggle:active { transform: scale(0.94); }
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--c-blue);
+  outline-offset: 2px;
+}
+
+/* 图标指示"将切换到"的主题 */
+.theme-toggle .icon-moon { display: none; }
+:root[data-theme="light"] .theme-toggle .icon-sun  { display: none; }
+:root[data-theme="light"] .theme-toggle .icon-moon { display: block; }
 
 /* 标题 */
 .title {
@@ -270,7 +402,7 @@ main {
 
 .card:hover {
   border-color: var(--c-muted);
-  background: rgba(255,255,255,0.04);
+  background: var(--c-hover);
 }
 
 /* 状态指示条 */
@@ -382,7 +514,7 @@ main {
 #rtg-cards .card.is-active:not(.offline),
 #fl-cards  .card.is-active:not(.offline) {
   border-color: var(--c-blue);
-  background-color: #232c40;
+  background-color: var(--c-active-bg);
 }
 
 /* ============================================================
@@ -449,7 +581,7 @@ main {
   border-radius: var(--radius-sm);
   border: 1px solid var(--c-border);
   background: var(--c-surface2);
-  box-shadow: 0 0 0.8rem rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow-card);
   position: relative;
   cursor: pointer;
   transition: border-color .18s, box-shadow .18s, background-color .18s, 
@@ -464,7 +596,7 @@ main {
 
 .ship-card--empty {
   border: none;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--c-fill);
   box-shadow: none;
   cursor: default; 
 }
@@ -472,19 +604,19 @@ main {
 .ship-card:not(.ship-card--empty):hover {
   z-index: 2;
   transform: translateY(-0.2rem);
-  box-shadow: 0 0.4rem 1.2rem rgba(0, 0, 0, .55),
+  box-shadow: var(--shadow-card-hover),
               0 0 0 1px var(--sc-accent),
               0 0 1.6rem -0.5rem var(--sc-accent);
 }
 
 .ship-card:not(.ship-card--empty):active {
-  background-color: #1a2233;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .05);
+  background-color: var(--c-down-bg);
+  box-shadow: inset 0 0 0 1px var(--c-inner-line);
   transition-duration: .05s;
 }
 
 .ship-card.is-active {
-  background-color: #232c40;
+  background-color: var(--c-active-bg);
   border-color: var(--sc-accent);
   box-shadow: 0 0 0 1px var(--sc-accent),
               0 0 1.6rem -0.5rem var(--sc-accent);
@@ -651,7 +783,7 @@ main {
   font-size: 1.3rem;
   color: var(--c-dim);
   border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--c-fill);
 }
 
 /* ============================================================
@@ -758,7 +890,7 @@ main {
   color: var(--c-text);              /* #7dd3fc  #4cc2ff */
 }
 
-.bar-total { background: linear-gradient(90deg, #38bdf8, #22d3ee); }
+.bar-total { background: linear-gradient(90deg, var(--bar-total-from), var(--bar-total-to)); }
 
 .sd-ref {
   display: flex;
@@ -771,12 +903,12 @@ main {
 .sd-ref input + label { margin-left: 2rem; }
 
 .sd-ref input {
-  color-scheme: dark;
+  color-scheme: inherit;
   background: transparent;
   color: inherit;
   height: 2.1rem;
   font-size: 1.3rem;
-  border: 1px solid rgba(255,255,255,.3);
+  border: 1px solid var(--c-line-soft);
   border-radius: 0.4rem;
   padding: 0.2rem 0.6rem;
 }
@@ -806,11 +938,11 @@ main {
 
 .sd-close:hover {
   color: var(--c-red);
-  background-color: rgba(248, 81, 73, .14);
-  border-color: rgba(248, 81, 73, .45);
+  background-color: var(--c-red-bg);
+  border-color: var(--c-red-line);
 }
 
-.sd-close:active { background-color: rgba(248, 81, 73, .26); }
+.sd-close:active { background-color: var(--c-red-bg-2); }
 
 .sd-close:focus-visible,
 .panel-expand:focus-visible {
@@ -980,7 +1112,7 @@ main {
   justify-content: center;
   font-size: 1.4rem;
   color: var(--c-dim);
-  background-color: rgba(255, 255, 255, 0.03);
+  background-color: var(--c-fill);
   border-radius: var(--radius-sm);
 }
 
@@ -1016,7 +1148,7 @@ main {
 .panel-expand:hover {
   color: var(--c-text);
   border-color: var(--c-dim);
-  background-color: rgba(255, 255, 255, .04);
+  background-color: var(--c-hover);
 }
 
 .qd-head .sd-close { margin-left: auto; }
