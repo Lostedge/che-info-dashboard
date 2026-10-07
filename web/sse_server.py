@@ -32,6 +32,13 @@ class SSEHandler(BaseHTTPRequestHandler):
     max_clients: int = 20
     auth: dict = {}
 
+    # 角色：dashboard = 基础看板（无船舶详情 / 岸桥色块图）/ full = 全功能
+    ROLE_DASHBOARD = 'dashboard'
+    ROLE_FULL = 'full'
+    # 仅 full 角色可访问的接口；仅 full 角色可接收的推送类型
+    FULL_ONLY_API = ('/api/ship_history', '/api/qc_move', '/api/ship_cntr')
+    FULL_ONLY_PUSH = ('qc_move',)
+
     MIME_TYPES = {
         '.html': 'text/html',
         '.css': 'text/css',
@@ -49,6 +56,7 @@ class SSEHandler(BaseHTTPRequestHandler):
     def setup(self):
         super().setup()
         self.write_lock = threading.Lock()
+        self.role = self.ROLE_DASHBOARD      # 鉴权通过后由 do_GET 覆盖，未覆盖即最小权限
 
     def handle(self):
         try:
@@ -57,13 +65,19 @@ class SSEHandler(BaseHTTPRequestHandler):
             pass
 
     def do_GET(self):
-        if not self._authenticated():
+        role = self._auth_role()
+        if role is None:
             self.logger.warning(f"认证失败: {self.client_address[0]} {self.path}")
             self._send_unauthorized()
             return
+        self.role = role
         try:
             path = urlparse(self.path).path
-            if path == '/events':
+            if path in self.FULL_ONLY_API and role != self.ROLE_FULL:
+                self.logger.warning(f"权限不足: {self.client_address[0]} [{role}] {path}")
+                self._send_bytes(403, 'application/json; charset=utf-8',
+                                 b'{"error": "forbidden"}')
+            elif path == '/events':
                 self._handle_sse()
             elif path == '/api/ship_history':
                 self._handle_api_history()
@@ -79,25 +93,37 @@ class SSEHandler(BaseHTTPRequestHandler):
         except Exception as e:
             self.logger.error(f"处理请求时发生错误: {e}")
 
-    def _authenticated(self):
-        """Basic Auth 校验"""
+    @staticmethod
+    def _users(cfg: dict) -> list:
+        """取账号列表；兼容旧的单账号写法 auth.username / auth.password"""
+        users = cfg.get('users')
+        if users:
+            return users
+        if cfg.get('password'):
+            return [{'username': cfg.get('username'),
+                     'password': cfg.get('password'),
+                     'role': cfg.get('role')}]
+        return []
+
+    def _auth_role(self) -> Optional[str]:
+        """Basic Auth 校验，返回角色名；未通过返回 None"""
         cfg = self.__class__.auth or {}
         if not cfg.get('enabled'):
-            return True
-        expect_user = cfg.get('username', '')
-        expect_pass = cfg.get('password', '')
-        if not expect_pass:
-            return False
-        auth = self.headers.get('Authorization', '')
-        if not auth.startswith('Basic '):
-            return False
+            return self.ROLE_FULL                        # 未启用鉴权 = 全权限
+        header = self.headers.get('Authorization', '')
+        if not header.startswith('Basic '):
+            return None
         try:
-            raw = base64.b64decode(auth[6:]).decode('utf-8')
+            raw = base64.b64decode(header[6:]).decode('utf-8')
             user, _, pwd = raw.partition(':')
         except Exception:
-            return False
-        return (hmac.compare_digest(user, expect_user)
-                and hmac.compare_digest(pwd, expect_pass))
+            return None
+        role = None
+        for u in self._users(cfg):                       # 遍历全部，不提前返回
+            if (hmac.compare_digest(user, str(u.get('username') or ''))
+                    and hmac.compare_digest(pwd, str(u.get('password') or ''))):
+                role = u.get('role') or self.ROLE_DASHBOARD   # 未配置角色 = 最小权限
+        return role
 
     def _send_unauthorized(self):
         """发送 401 未授权响应"""
@@ -145,7 +171,7 @@ class SSEHandler(BaseHTTPRequestHandler):
             self.__class__.clients.append(self)
             self.client_ip = self.client_address[0]
             self.logger.info(
-                f"SSE 客户端连接: {self.client_ip}，当前连接数: {len(self.clients)}"
+                f"SSE 客户端连接: {self.client_ip} [{self.role}]，当前连接数: {len(self.clients)}"
             )
             return True
 
@@ -262,9 +288,12 @@ class SSEHandler(BaseHTTPRequestHandler):
             if not cls.clients:
                 return
             clients = list(cls.clients)
+        full_only = data.get('type') in cls.FULL_ONLY_PUSH
         message = _encode_sse(data)
         dead_clients = []
         for client in clients:
+            if full_only and getattr(client, 'role', cls.ROLE_DASHBOARD) != cls.ROLE_FULL:
+                continue
             try:
                 with client.write_lock:
                     client.wfile.write(message)

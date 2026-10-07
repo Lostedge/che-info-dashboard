@@ -36,6 +36,8 @@ def load_config(base_dir: str) -> dict:
         _resolve_env_vars(mqtt_config, ('username', 'password'))
         _resolve_env_vars(oracle_config, ('host', 'port', 'service_name', 'user', 'password', 'lib_dir'))
         _resolve_env_vars(auth_config, ('username', 'password'))
+        for user in auth_config.get('users') or []:          # 账号列表内的 ${} 占位符
+            _resolve_env_vars(user, ('username', 'password'))
 
         return config
 
@@ -78,6 +80,9 @@ def main():
 
     # 设置客户端连接回调
     def on_connect(handler: SSEHandler):
+        # 下发本连接的角色，前端据此决定可用入口
+        handler.send_to({'type': 'auth', 'data': {'role': handler.role}})
+
         # 推送所有设备的初始定位状态
         all_states = detector.get_all_states()
         devices = [
