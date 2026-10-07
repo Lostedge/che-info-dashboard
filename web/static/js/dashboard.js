@@ -77,6 +77,30 @@ const CARD_LISTS = {
   fl:  { prefix: '3', listId: 'fl-cards',  countId: 'fl-count' },
 };
 
+
+/* ============================================================
+   Auth - 当前账号角色验证（服务端 SSE 首帧下发，见 web/sse_server.py）
+   ============================================================ */
+
+const Auth = {
+  role: 'dashboard',                            // fail-closed：收到 auth 消息前按最小权限
+  get full()   { return this.role === 'full'; },
+  get denied() { return !this.full; },
+
+  /** 应用权限：隐藏不可用入口 */
+  apply() {
+    document.getElementById('qc-expand')?.classList.toggle('hidden', this.denied);
+    document.getElementById('ship-info')?.classList.toggle('no-detail', this.denied);
+    if (this.denied && DetailPanel.mode) DetailPanel.close();   // 降权时关闭已展开的面板
+  },
+
+  setRole(role) {
+    this.role = role || 'dashboard';
+    this.apply();
+  },
+};
+
+
 /* ============================================================
    State
    ============================================================ */
@@ -430,6 +454,7 @@ const DetailPanel = {
     document.getElementById('qd-close').onclick = () => this.close();
 
     document.getElementById('ship-info').addEventListener('click', (e) => {
+      if (Auth.denied) return;                              // 基础看板：船舶卡片不可点
       const card = e.target.closest('.ship-card');
       if (!card || card.classList.contains('ship-card--empty') || card.dataset.id == null) return;
       if (this.mode === 'ship' && String(ShipDetail.id) === String(card.dataset.id)) { this.close(); return; }
@@ -443,6 +468,7 @@ const DetailPanel = {
 
   /** 从船舶卡片打开：ship + qc */
   async openShip(id) {
+    if (Auth.denied) return;                   // 兜底：devtools 直接调用
     const fresh = this.mode !== 'ship';        // 从关闭态 / QC 态打开船舶面板 → 强制刷新一次 cntr
     this.mode = 'ship';
     this._show({ ship: true, qc: true });
@@ -452,6 +478,7 @@ const DetailPanel = {
 
   /** 从 qc 面板单独打开：仅 qc */
   async openQc(id = null) {
+    if (Auth.denied) return;                   // 兜底：devtools 直接调用
     this.mode = 'qc';
     this._show({ ship: false, qc: true });
     this._markActive();
@@ -943,6 +970,10 @@ const SSEClient = {
     const data = msg.data || [];
 
     switch (msg.type) {
+      case 'auth':                             // 服务端首个消息，决定可用入口
+        Auth.setRole(msg.data?.role);
+        break;
+
       case 'init_loc':
       case 'rtg_loc':
         State.merge(data);
@@ -1017,6 +1048,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   CntrDetail.init()
   Charts.init();
   State._initShipProgPct();
+  Auth.apply();               // 首帧即按最小权限隐藏入口，避免闪出后又收回
   await Config.load();
   SSEClient.init();
 });

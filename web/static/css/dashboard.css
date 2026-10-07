@@ -986,6 +986,10 @@ main {
 
 .qd-empty.hidden { display: none; }
 
+/* 权限：基础看板隐藏详情入口（见 dashboard.js 的 Auth） */
+.panel-expand.hidden { display: none; }
+.ship-panel.no-detail .ship-card { cursor: default; }
+
 /* qc_detail 展开按钮 / 在场箱刷新按钮 */
 .panel-expand {
   display: inline-flex;
