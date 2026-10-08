@@ -573,7 +573,7 @@ const DetailPanel = {
       });
     }
 
-    // 岸桥 / 场桥 / 堆高机：只高亮"此刻正在作业该船"的设备
+    // 岸桥 / 场桥 / 堆高机：选中船舶进入聚焦模式——作业该船的设备高亮，其他设备置灰
     for (const [type, cfg] of Object.entries(CARD_LISTS)) {
       const listEl = document.getElementById(cfg.listId);
       if (!listEl) continue;
@@ -581,7 +581,7 @@ const DetailPanel = {
         devicesOfShip(ship, filterByConfig(State.getByType(cfg.prefix), type))
           .map(d => String(d.id))
       );
-      listEl.classList.toggle('has-active', working.size > 0);
+      listEl.classList.toggle('has-active', id != null);   // ← 原为 working.size > 0
       listEl.querySelectorAll('.card').forEach(el => {
         el.classList.toggle('is-active', working.has(String(el.dataset.id)));
       });
