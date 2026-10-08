@@ -30,6 +30,7 @@
   --c-hover:      rgba(255, 255, 255, 0.04);
   --c-fill:       rgba(255, 255, 255, 0.03);
   --c-active-bg:  #232c40;
+  --c-active-bg-ship: #232c40;
   --c-down-bg:    #1a2233;
   --c-inner-line: rgba(255, 255, 255, 0.05);
   --c-line-soft:  rgba(255, 255, 255, 0.30);
@@ -103,6 +104,7 @@
   --c-hover:      rgba(15, 23, 42, 0.045);
   --c-fill:       rgba(15, 23, 42, 0.025);
   --c-active-bg:  #e8effc;
+  --c-active-bg-ship: #ffffff;
   --c-down-bg:    #dde7f8;
   --c-inner-line: rgba(15, 23, 42, 0.07);
   --c-line-soft:  rgba(15, 23, 42, 0.18);
@@ -616,7 +618,7 @@ main {
 }
 
 .ship-card.is-active {
-  background-color: var(--c-active-bg);
+  background-color: var(--c-active-bg-ship);
   border-color: var(--sc-accent);
   box-shadow: 0 0 0 1px var(--sc-accent),
               0 0 1.6rem -0.5rem var(--sc-accent);

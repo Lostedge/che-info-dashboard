@@ -134,7 +134,7 @@ const Theme = {
 
   /** 提示语指向"将要切到的"主题；图标由 CSS 依 data-theme 切换 */
   _sync(btn) {
-    const label = `切换到${this.current === 'light' ? '暗色' : '亮色'}主题`;
+    const label = `切换到${this.current === 'light' ? '深色' : '浅色'}主题`;
     btn.title = label;
     btn.setAttribute('aria-label', label);
   },

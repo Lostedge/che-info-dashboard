@@ -302,6 +302,7 @@ function shipDetailOptions(c) {
 function shipDetailDatasets(built, c, refLabel) {
   const band = {
     borderColor: c.refBand,
+    backgroundColor: 'transparent',
     borderDash: [6, 4], pointRadius: 0, fill: false, borderWidth: 1,
   };
   return [
@@ -309,6 +310,7 @@ function shipDetailDatasets(built, c, refLabel) {
       backgroundColor: c.shipBg, fill: true, spanGaps: true,
       pointRadius: 1.5, tension: 0.25, borderWidth: 2 },
     { label: refLabel, data: built.ref, borderColor: c.ref,
+      backgroundColor: 'transparent',
       borderDash: [6, 4], pointRadius: 0, fill: false, borderWidth: 1.5 },
     { ...band, label: `−1h`, data: built.refEarly },
     { ...band, label: `+1h`, data: built.refLate },
@@ -347,14 +349,16 @@ function qcHeatOptions(c, cfg, xLabels, yLabels) {
     },
     scales: {
       x: { type: 'category', offset: true, labels: xLabels,
-           ticks: { color: c.soft, maxRotation: 0, autoSkip: true,
+           border: { display: false },
+           ticks: { color: c.soft, maxRotation: 0, autoSkip: true, padding: 10,
                     callback: function (v) {              // 键 'ddHH' → 'HH:00'
                       return `${String(this.getLabelForValue(v)).slice(2, 4)}:00`;
                     } },
-           grid: { display: false } },
+           grid: { display: false, drawTicks: false } },
       y: { type: 'category', offset: true, labels: yLabels, reverse: false,
-           ticks: { color: c.text, font: { size: 13, weight: 'bold' } },
-           grid: { display: false } },
+           border: { display: false },
+           ticks: { color: c.text, font: { size: 13, weight: 'bold' }, padding: 10 },
+           grid: { display: false, drawTicks: false } },
     },
     elements: {
       matrix: {
