@@ -29,6 +29,7 @@
   /* 叠加层 / 交互态 / 分隔线 */
   --c-hover:      rgba(255, 255, 255, 0.04);
   --c-fill:       rgba(255, 255, 255, 0.03);
+  --c-overlay:    #1c2333;     /* 浮层背景（提示气泡 / 弹层） */
   --c-active-bg:  #232c40;
   --c-active-bg-ship: #232c40;
   --c-down-bg:    #1a2233;
@@ -103,6 +104,7 @@
 
   --c-hover:      rgba(15, 23, 42, 0.045);
   --c-fill:       rgba(15, 23, 42, 0.025);
+  --c-overlay:    #ffffff;     /* 浮层背景（提示气泡 / 弹层） */
   --c-active-bg:  #e8effc;
   --c-active-bg-ship: #ffffff;
   --c-down-bg:    #dde7f8;
@@ -186,6 +188,74 @@ body {
 .icon-refresh-off { -webkit-mask-image: url("../libs/icons/refresh-cw-off.svg");     mask-image: url("../libs/icons/refresh-cw-off.svg"); }
 .icon-sun         { -webkit-mask-image: url("../libs/icons/sun.svg");                mask-image: url("../libs/icons/sun.svg"); }
 .icon-moon        { -webkit-mask-image: url("../libs/icons/moon.svg");               mask-image: url("../libs/icons/moon.svg"); }
+.icon-info        { -webkit-mask-image: url("../libs/icons/info.svg");               mask-image: url("../libs/icons/info.svg"); }
+
+/* ============================================================
+   通用：悬浮说明（.tip）
+   ============================================================ */
+
+.tip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  border-radius: 50%;              /* 让 focus 圆环贴合图标 */
+  color: var(--c-dim);
+  cursor: help;
+  transition: color .15s;
+}
+
+.tip .icon { width: 1.6rem; height: 1.6rem; }
+
+.tip:is(:hover, :focus-visible) { color: var(--c-text); }
+
+/* 气泡：默认在下方、左对齐；可叠加 .tip--top / .tip--right */
+.tip-body {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  z-index: 5;                      /* 高于 thead(1) 与 ship-card:hover(2) */
+  width: max-content;
+  max-width: min(60rem, 46vw);
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  background: var(--c-overlay);
+  box-shadow: var(--shadow-card-hover);
+  color: var(--c-soft);
+  font-size: 1.2rem;
+  font-weight: 400;                /* 防继承标题的 600 */
+  line-height: 1.55;
+  letter-spacing: 0;
+  white-space: normal;
+  overflow-wrap: break-word;
+  pointer-events: none;            /* 不挡鼠标，避免 hover 抖动 */
+  opacity: 0;
+  transform: translateY(-0.3rem);
+  transition: opacity .15s, transform .15s;
+}
+
+.tip-body b { color: var(--c-text); }
+
+.tip:is(:hover, :focus-visible) .tip-body {
+  opacity: 1;
+  transform: none;
+}
+
+/* 变体：气泡在上方（元素贴近底部时用） */
+.tip--top .tip-body {
+  top: auto;
+  bottom: calc(100% + 0.5rem);
+  transform: translateY(0.3rem);
+}
+
+/* 变体：气泡右对齐（元素贴近右边界时用） */
+.tip--right .tip-body { left: auto; right: 0; }
+
+.tip:focus-visible {
+  outline: 2px solid var(--c-blue);
+  outline-offset: 2px;
+}
 
 /* ============================================================
    HEADER
@@ -1079,11 +1149,32 @@ main {
 
 .qd-legend {
   display: flex;
+  padding-left: 1rem;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 0.8rem;
   font-size: 1.2rem;
   color: var(--c-dim);
+}
+/* 标题左侧分组 */
+.qd-legend-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.qd-legend-title {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--c-text);
+  letter-spacing: 0.02em;
+}
+
+.qd-legend-scale {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
 }
 
 .qd-legend-bar {
