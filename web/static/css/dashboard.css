@@ -48,6 +48,9 @@
   --c-amber:    #d29922;
   --c-blue:     #58a6ff;
   --c-red:      #f85149;
+  --c-bar-online:  #10b981;
+  --c-bar-offline: #484f58;
+  --c-bar-fault:   #f85149;
 
   /* 船舶卡片 */
   --ship-work:  #238636;
@@ -121,6 +124,9 @@
   --c-amber:    #b45309;
   --c-blue:     #2563eb;
   --c-red:      #dc2626;
+  --c-bar-online:  #22c55e;
+  --c-bar-offline: #cbd5e1;
+  --c-bar-fault:   #ef4444; 
 
   --ship-work:  #15803d;
   --ship-berth: #b45309;
@@ -137,17 +143,21 @@
   --chart-ref:          #d97706;
   --chart-ref-band:     rgba(100, 116, 139, 0.60);
   --chart-chip:         rgba(255, 255, 255, 0.88);
-  --chart-heat-null:    #eceff4;
-  --chart-heat-gap:     rgba(15, 23, 42, 0.07);
+  --chart-heat-null:    rgba(148, 163, 184, 0.10);
+  --chart-heat-gap:     rgba(148, 163, 184, 0.10);
   --chart-heat-on-dark: #f8fafc;
   --chart-heat-on-light: #0f172a;
   --bar-total-from: #0ea5e9;
   --bar-total-to:   #06b6d4;
 }
 
-/* 亮色下设备卡片仅靠底色区分不够，补一层描边 */
+/* 浅色模式下提高设备卡片区分度 */
 :root[data-theme="light"] .card {
   border-color: var(--c-border);
+}
+
+:root[data-theme="light"] .card.offline {
+  --c-dim: #9aa5b4;
 }
 
 html, body {
@@ -487,9 +497,9 @@ main {
   transition: background 0.3s;
 }
 
-.c-bar.c-online  { background: var(--c-green); }
-.c-bar.c-offline { background: var(--c-muted); }
-.c-bar.c-fault   { background: var(--c-red);  }
+.c-bar.c-online  { background: var(--c-bar-online);  }
+.c-bar.c-offline { background: var(--c-bar-offline); }
+.c-bar.c-fault   { background: var(--c-bar-fault);   }
 
 .card .c-id {
   flex-shrink: 0;
