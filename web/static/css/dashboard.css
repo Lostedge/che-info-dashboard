@@ -54,6 +54,7 @@
   --c-bar-online:  #10b981;
   --c-bar-offline: #484f58;
   --c-bar-fault:   #f85149;
+  --c-dec:      #34d399;     /* 在场箱量减少标记 */
 
   /* 船舶卡片 */
   --ship-work:  #238636;
@@ -133,6 +134,7 @@
   --c-bar-online:  #22c55e;
   --c-bar-offline: #cbd5e1;
   --c-bar-fault:   #ef4444; 
+  --c-dec:      #0f9d58;
 
   --ship-work:  #15803d;
   --ship-berth: #b45309;
@@ -1152,6 +1154,17 @@ main {
   padding-top: 0.8rem;
 }
 .cntr-table tbody tr.ct-group-start:first-child > td { border-top: none; }
+
+/* 场区箱量相比上次更新减少 */
+.cntr-table tbody tr.ct-decrease > td.ct-area {
+  color: var(--c-dec);
+  font-weight: 500;
+}
+
+/* .cntr-table tbody tr.ct-decrease > td.ct-area::after {
+  content: ' ↓';
+  color: var(--c-green);
+} */
 
 /* 卸货港列突出 表头吸顶 */
 .cntr-table thead th { 

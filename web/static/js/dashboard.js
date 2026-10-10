@@ -833,7 +833,7 @@ const CntrDetail = {
     this.id = String(id);
     this._arm();
     const hit = this.cache[this.id];
-    if (hit && !force) { this.render(hit.rows, hit.ts); return; }   // 只换显示，不发请求
+    if (hit && !force) { this.render(hit.rows, hit.ts, hit.diff); return; }   // 只换显示，不发请求
     if (!hit) this.el.body.innerHTML = '<span class="cntr-empty">加载中…</span>';
     await this.load();
   },
@@ -869,6 +869,25 @@ const CntrDetail = {
     return 2;
   },
 
+  /** rows → 场区合计 { area: sum } */
+  _areaSum(rows) {
+    const m = {};
+    for (const r of rows || []) m[r.area] = (m[r.area] ?? 0) + r.cnt;
+    return m;
+  },
+
+  /** 相比上次减少的场区集合；没有上次数据时返回空集 */
+  _diffDecrease(prevRows, nextRows) {
+    if (!prevRows) return new Set();
+    const prev = this._areaSum(prevRows);
+    const next = this._areaSum(nextRows);
+    const hasArea = a => {                       // 无场区（'-' / 空）不参与对比
+      const s = String(a ?? '').trim();
+      return s !== '' && s !== '-';
+    };
+    return new Set(Object.keys(prev).filter(a => hasArea(a) && (next[a] ?? 0) < prev[a]));
+  },
+
   /** manual=true 手动刷新：60s 内不重复查 */
   async load(manual = false) {
     if (!this.id) return;
@@ -883,12 +902,17 @@ const CntrDetail = {
       this._cool();                                       // 失败/过期：只恢复按钮，表格保持原样
       return;
     }
-    if (data.ts) this.cache[this.id] = { rows: data.rows || [], ts: data.ts };
-    const { rows = [], ts = 0 } = this.cache[this.id] || {};
-    this.render(rows, ts);
+    const prev = this.cache[this.id]?.rows;
+    if (data.ts) this.cache[this.id] = {
+      rows: data.rows || [],
+      ts: data.ts,
+      diff: this._diffDecrease(prev, data.rows),
+    };
+    const { rows = [], ts = 0, diff = new Set() } = this.cache[this.id] || {};
+    this.render(rows, ts, diff);
   },
 
-  render(rows, ts) {
+  render(rows, ts, diff = new Set()) {
     const el = this.el;
     el.time.textContent = ts ? `数据时间 ${fmtTs(ts).slice(-5)}` : '';
     this._cool();
@@ -925,8 +949,9 @@ const CntrDetail = {
 
       const m   = byArea.get(a);
       const sum = [...m.values()].reduce((s, n) => s + n, 0);
+      const cls = `${head ? 'ct-group-start' : ''}${diff.has(a) ? ' ct-decrease' : ''}`.trim();
 
-      return `<tr class="${head ? 'ct-group-start' : ''}">
+      return `<tr class="${cls}">
         <td class="ct-area">${escapeHtml(a)}</td>`
         + ports.map(p => `<td>${m.get(p) ?? ''}</td>`).join('')
         + `<td class="ct-sum">${sum}</td></tr>`;
