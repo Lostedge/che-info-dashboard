@@ -196,9 +196,23 @@ class SSEHandler(BaseHTTPRequestHandler):
         try:
             with open(file_path, 'rb') as f:
                 content = f.read()
-            self._send_bytes(200, content_type, content)
+
+            if rel_path == 'index.html':
+                content = self._inject_role(content)
+                self._send_bytes(200, content_type, content)
+            else:
+                self._send_bytes(200, content_type, content)
         except OSError:
             self.send_error(404)
+
+    def _inject_role(self, content: bytes) -> bytes:
+        """把当前角色写入 <html data-role="...">，使 header 首次绘制即为最终形态"""
+        marker = b'<html lang="zh-CN"'          # 不含 '>'，便于日后加别的属性
+        if marker not in content:
+            self.logger.warning('index.html 缺少 <html lang="zh-CN"> 标记，角色未注入')
+            return content
+        return content.replace(
+            marker, marker + f' data-role="{self.role}"'.encode('utf-8'), 1)
 
     def _handle_api_history(self):
         """GET /api/ship_history?voyage=xxx → {"id":..., "points":[{t,i_done,e_done},...]}"""

@@ -91,7 +91,7 @@ const CARD_LISTS = {
    ============================================================ */
 
 const Auth = {
-  role: 'dashboard',                            // fail-closed：收到 auth 消息前按最小权限
+  role: document.documentElement.dataset.role || 'dashboard',
 
   /** 仅 full 角色可见的入口（按 id 加 .hidden） */
   FULL_ONLY: ['qc-expand', 'focus-toggle', 'focus-tip'],
@@ -99,13 +99,17 @@ const Auth = {
   get full()   { return this.role === 'full'; },
   get denied() { return !this.full; },
 
-  /** 应用权限：隐藏不可用入口 */
+  /** 应用权限：隐藏不可用入口，并把角色写到 <html> 供 CSS 切换 header 形态 */
   apply() {
+    const root = document.documentElement;
+    root.dataset.role = this.role;          // full → 紧凑 header；dashboard → 原样
+    document.title = this.full ? '中控作业监控平台' : '机械设备监控看板';
+
     for (const id of this.FULL_ONLY) {
       document.getElementById(id)?.classList.toggle('hidden', this.denied);
     }
     document.getElementById('ship-info')?.classList.toggle('no-detail', this.denied);
-    if (this.denied && DetailPanel.mode) DetailPanel.close();   // 降权时关闭已展开的面板
+    if (this.denied && DetailPanel.mode) DetailPanel.close();
   },
 
   setRole(role) {

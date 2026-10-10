@@ -166,6 +166,24 @@
   --c-dim: #9aa5b4;
 }
 
+/* ============================================================
+   角色差异：full（PC 端）紧凑 header
+   ============================================================ */
+
+:root[data-role="full"] {
+  --header-h: 5.5rem;
+}
+
+:root[data-role="full"] .title {
+  font-weight: 400;
+  letter-spacing: 0.2rem;
+}
+
+/* 标题文案 */
+.title-full { display: none; }
+:root[data-role="full"] .title-full { display: inline; }
+:root[data-role="full"] .title-base { display: none; }
+
 html, body {
   width: 100vw;
   height: 100vh;
