@@ -63,11 +63,19 @@ function filterByConfig(devices, type) {
   return ids ? devices.filter(d => ids.includes(d.id)) : devices;
 }
 
-/** 取属于该船的作业设备 */
+/** 取属于该船的作业设备
+ *  场桥/堆高机按航次号匹配，来源按 config.ship_device_src 过滤：
+ *    'both'（默认）= 装船绑定 + 卸船指令兜底都参与
+ *    'bind'        = 只用装船绑定，cmd 兜底不高亮
+ *  岸桥没有 voyage_src（船来自 SHIP_MACH_PLAC），不受该配置影响 */
 function devicesOfShip(ship, list) {
   if (!ship) return [];
-  const id = String(ship.id ?? '');
-  return (list || []).filter(d => String(d.voyage ?? '') === id);
+  const id       = String(ship.id ?? '');
+  const onlyBind = Config.data?.ship_device_src === 'bind';
+  return (list || []).filter(d => {
+    if (String(d.voyage ?? '') !== id) return false;
+    return !onlyBind || d.voyage_src === undefined || d.voyage_src === 'bind';
+  });
 }
 
 /** 卡片列表：配置键 → 设备 id 首位 / 列表元素 / 计数元素 */

@@ -41,8 +41,10 @@ QC_STATS = """
     ORDER BY SHIP_MACH_NO
 """
 
-# 堆场设备信息（RTG、FL；FL 附位置 area/bay；附当前作业航次 voyage）
-# voyage = 最近 :voyage_window 分钟内装卸船指令（SI/SO）的 TOOL_NO → SHIP.SHIP_NO → VOYAGE_NO
+# 堆场设备信息（RTG、FL；FL 附位置 area/bay；附作业航次 voyage）
+# 来源：VV_YE_BIND（装船绑定）优先，未绑定时回退近 :voyage_window 分钟内的 SI 指令（卸船）
+#   TOS 只为装船分配设备，故 cmd 分支实际只服务卸船，两来源不会冲突
+# 输出 voyage_src = 'bind' | 'cmd' | ''，显示策略由前端 config.ship_device_src 决定
 YM_INFO = """
     SELECT
         SUBSTR(p.MACH_NO, -3)                       AS id,
@@ -53,15 +55,19 @@ YM_INFO = """
              THEN p.CUR_CY_AREA_NO END              AS area,
         CASE WHEN p.MACH_NO LIKE 'DGJ%'
              THEN p.CUR_CY_BAY_NO  END              AS bay,
-        s.VOYAGE_NO                                 AS voyage
+        COALESCE(b.VSL_VISIT_GKEY, s.VOYAGE_NO)     AS voyage,
+        CASE WHEN b.VSL_VISIT_GKEY IS NOT NULL THEN 'bind'
+             WHEN s.VOYAGE_NO      IS NOT NULL THEN 'cmd'
+             ELSE '' END                            AS voyage_src
     FROM JZCT_TOS.CY_MACH_PLAC p
-    LEFT JOIN JZCT_CODE.C_OPERATOR o ON p.MACH_OPER_COD = o.OPER_COD
+    LEFT JOIN JZCT_CODE.C_OPERATOR o ON o.OPER_COD = p.MACH_OPER_COD
+    LEFT JOIN JZCT_CONDA.VV_YE_BIND b ON b.EQP_ID  = p.MACH_NO
     LEFT JOIN (
         SELECT CY_MACH_NO,
                MAX(TOOL_NO) KEEP (DENSE_RANK LAST ORDER BY WORK_TIM) AS ship_no
         FROM JZCT_TOS.CY_COMMAND
         WHERE WORK_TIM >= SYSDATE - :voyage_window / 1440
-          AND QUEUE_TYP IN ('SI', 'SO')
+          AND QUEUE_TYP = 'SI'                     -- 仅卸船；装船由绑定表覆盖
           AND TOOL_NO IS NOT NULL
         GROUP BY CY_MACH_NO
     ) l ON l.CY_MACH_NO = p.MACH_NO
