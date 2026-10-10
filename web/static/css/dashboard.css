@@ -12,23 +12,49 @@
 
 :root {
   font-size: calc(100vw / 192);
+  color-scheme: dark;                        /* 原生表单控件/滚动条跟随主题 */
 
-  /* ---- 配色 ---- */
+  /* ---- 配色（暗色，默认）---- */
   --c-bg:       #0d1117;
   --c-surface:  #161b22;
   --c-surface2: #1c2333;
   --c-border:   #30363d;
+  --c-btn-bg:   rgba(255, 255, 255, 0.04);
   --c-text:     #e6edf3;
   --c-soft:     #b0b8c0;
   --c-dim:      #8b949e;
   --c-track:    #484f58;     /* #6e7681 */
   --c-muted:    #484f58;
 
+  /* 叠加层 / 交互态 / 分隔线 */
+  --c-hover:      rgba(255, 255, 255, 0.04);
+  --c-fill:       rgba(255, 255, 255, 0.03);
+  --c-overlay:    #1c2333;     /* 浮层背景（提示气泡 / 弹层） */
+  --c-active-bg:  #232c40;
+  --c-active-bg-ship: #232c40;
+  --c-down-bg:    #1a2233;
+  --c-inner-line: rgba(255, 255, 255, 0.05);
+  --c-line-soft:  rgba(255, 255, 255, 0.30);
+  --c-red-bg:     rgba(248, 81, 73, 0.14);
+  --c-red-line:   rgba(248, 81, 73, 0.45);
+  --c-red-bg-2:   rgba(248, 81, 73, 0.26);
+  --c-blue-bg:    rgba(88, 166, 255, 0.12);
+  --c-blue-line:  rgba(88, 166, 255, 0.55);
+  --c-blue-glow:  rgba(88, 166, 255, 0.35);
+
+  /* 阴影 */
+  --shadow-card:       0 0 0.8rem rgba(0, 0, 0, 0.35);
+  --shadow-card-hover: 0 0.4rem 1.2rem rgba(0, 0, 0, 0.55);
+
   /* 语义色 */
   --c-green:    #10b981;
   --c-amber:    #d29922;
   --c-blue:     #58a6ff;
   --c-red:      #f85149;
+  --c-bar-online:  #10b981;
+  --c-bar-offline: #484f58;
+  --c-bar-fault:   #f85149;
+  --c-dec:      #34d399;     /* 在场箱量减少标记 */
 
   /* 船舶卡片 */
   --ship-work:  #238636;
@@ -37,11 +63,22 @@
   --ship-i:     #60a5fa;
   --ship-e:     #34d399;
 
-  /* 图表色 */
+  /* 图表色（charts.js 的 chartColors() 读取；改主题后必须重建图表）*/
   --chart-20:   #60a5fa;
   --chart-40:   #34d399;
   --chart-20-text: #93c5fd;
   --chart-40-text: #6ee7b7;
+  --chart-ship:         #4cc2ff;                   /* 船舶详情：实际完成 */
+  --chart-ship-bg:      rgba(76, 194, 255, 0.15);
+  --chart-ref:          #ffd04c;                   /* 船舶详情：参考线 */
+  --chart-ref-band:     rgba(139, 148, 158, 0.75); /* 船舶详情：±1h 参考带 */
+  --chart-chip:         rgba(13, 17, 23, 0.75);    /* 数据标签底色 */
+  --chart-heat-null:    rgba(72, 79, 88, 0.35);    /* 色块图：无数据格 */
+  --chart-heat-gap:     rgba(255, 255, 255, 0.09); /* 色块图：格间距 */
+  --chart-heat-on-dark: #e6edf3;                   /* 深色格上的文字 */
+  --chart-heat-on-light: #0d1117;                  /* 浅色格上的文字 */
+  --bar-total-from: #38bdf8;
+  --bar-total-to:   #22d3ee;
 
   /* ---- 尺寸 ---- */
   --header-h:  7rem;
@@ -51,7 +88,103 @@
   --gap:       1.2rem;         /* 1rem */
   --radius:    1rem;           /* 0.8rem */
   --radius-sm: 0.8rem;         /* 0.5rem */
+  --btn-h:     2.8rem;         /* 图标/文字按钮高度 */
 }
+
+/* ============================================================
+   由 <html data-theme="light"> 触发，见 js/theme.js 与 dashboard.js 的 Theme
+   ============================================================ */
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --c-bg:       #eef2f8;
+  --c-surface:  #ffffff;
+  --c-surface2: #f6f8fc;
+  --c-border:   #e2e8f0;
+  --c-btn-bg:   rgba(15, 23, 42, 0.05);
+  --c-text:     #0f172a;
+  --c-soft:     #475569;
+  --c-dim:      #64748b;
+  --c-track:    #cbd5e1;
+  --c-muted:    #cbd5e1;
+
+  --c-hover:      rgba(15, 23, 42, 0.045);
+  --c-fill:       rgba(15, 23, 42, 0.025);
+  --c-overlay:    #ffffff;     /* 浮层背景（提示气泡 / 弹层） */
+  --c-active-bg:  #e8effc;
+  --c-active-bg-ship: #ffffff;
+  --c-down-bg:    #dde7f8;
+  --c-inner-line: rgba(15, 23, 42, 0.07);
+  --c-line-soft:  rgba(15, 23, 42, 0.18);
+  --c-red-bg:     rgba(220, 38, 38, 0.10);
+  --c-red-line:   rgba(220, 38, 38, 0.35);
+  --c-red-bg-2:   rgba(220, 38, 38, 0.18);
+  --c-blue-bg:    rgba(37, 99, 235, 0.10);
+  --c-blue-line:  rgba(37, 99, 235, 0.45);
+  --c-blue-glow:  rgba(37, 99, 235, 0.18);
+
+  --shadow-card:       0 1px 2px rgba(15, 23, 42, 0.05), 0 4px 12px rgba(15, 23, 42, 0.06);
+  --shadow-card-hover: 0 8px 24px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.07);
+
+  --c-green:    #0f9d58;
+  --c-amber:    #b45309;
+  --c-blue:     #2563eb;
+  --c-red:      #dc2626;
+  --c-bar-online:  #22c55e;
+  --c-bar-offline: #cbd5e1;
+  --c-bar-fault:   #ef4444; 
+  --c-dec:      #0f9d58;
+
+  --ship-work:  #15803d;
+  --ship-berth: #b45309;
+  --ship-wait:  #1d4ed8;
+  --ship-i:     #2563eb;
+  --ship-e:     #059669;
+
+  --chart-20:      #3b82f6;
+  --chart-40:      #10b981;
+  --chart-20-text: #1d4ed8;
+  --chart-40-text: #047857;
+  --chart-ship:         #0284c7;
+  --chart-ship-bg:      rgba(2, 132, 199, 0.12);
+  --chart-ref:          #d97706;
+  --chart-ref-band:     rgba(100, 116, 139, 0.60);
+  --chart-chip:         rgba(255, 255, 255, 0.88);
+  --chart-heat-null:    rgba(148, 163, 184, 0.10);
+  --chart-heat-gap:     rgba(148, 163, 184, 0.10);
+  --chart-heat-on-dark: #f8fafc;
+  --chart-heat-on-light: #0f172a;
+  --bar-total-from: #0ea5e9;
+  --bar-total-to:   #06b6d4;
+}
+
+/* 浅色模式下提高设备卡片区分度 */
+:root[data-theme="light"] .card {
+  border-color: var(--c-border);
+}
+
+:root[data-theme="light"] .card.offline {
+  --c-dim: #9aa5b4;
+}
+
+/* ============================================================
+   角色差异：full（PC 端）紧凑 header
+   ============================================================ */
+
+:root[data-role="full"] {
+  --header-h: 5.5rem;
+}
+
+:root[data-role="full"] .title {
+  font-weight: 400;
+  letter-spacing: 0.2rem;
+}
+
+/* 标题文案 */
+.title-full { display: none; }
+:root[data-role="full"] .title-full { display: inline; }
+:root[data-role="full"] .title-base { display: none; }
 
 html, body {
   width: 100vw;
@@ -72,6 +205,97 @@ body {
 }
 
 /* ============================================================
+   图标（Lucide SVG → mask，颜色随 currentColor）
+   ============================================================ */
+
+.icon {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  background-color: currentColor;
+  -webkit-mask-repeat: no-repeat;  mask-repeat: no-repeat;
+  -webkit-mask-position: center;   mask-position: center;
+  -webkit-mask-size: contain;      mask-size: contain;
+}
+
+.icon-x           { -webkit-mask-image: url("../libs/icons/x.svg");                  mask-image: url("../libs/icons/x.svg"); }
+.icon-detail      { -webkit-mask-image: url("../libs/icons/square-chart-gantt.svg"); mask-image: url("../libs/icons/square-chart-gantt.svg"); }
+.icon-refresh     { -webkit-mask-image: url("../libs/icons/refresh-cw.svg");         mask-image: url("../libs/icons/refresh-cw.svg"); }
+.icon-refresh-off { -webkit-mask-image: url("../libs/icons/refresh-cw-off.svg");     mask-image: url("../libs/icons/refresh-cw-off.svg"); }
+.icon-sun         { -webkit-mask-image: url("../libs/icons/sun.svg");                mask-image: url("../libs/icons/sun.svg"); }
+.icon-moon        { -webkit-mask-image: url("../libs/icons/moon.svg");               mask-image: url("../libs/icons/moon.svg"); }
+.icon-info        { -webkit-mask-image: url("../libs/icons/info.svg");               mask-image: url("../libs/icons/info.svg"); }
+.icon-scan        { -webkit-mask-image: url("../libs/icons/scan.svg");               mask-image: url("../libs/icons/scan.svg"); }
+.icon-scan-eye    { -webkit-mask-image: url("../libs/icons/scan-eye.svg");           mask-image: url("../libs/icons/scan-eye.svg"); }
+
+/* ============================================================
+   通用：悬浮说明（.tip）
+   ============================================================ */
+
+.tip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  border-radius: 50%;              /* 让 focus 圆环贴合图标 */
+  color: var(--c-dim);
+  cursor: help;
+  transition: color .15s;
+}
+
+.tip .icon { width: 1.6rem; height: 1.6rem; }
+
+.tip:is(:hover, :focus-visible) { color: var(--c-text); }
+
+/* 气泡：默认在下方、左对齐；可叠加 .tip--top / .tip--right */
+.tip-body {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  z-index: 5;                      /* 高于 thead(1) 与 ship-card:hover(2) */
+  width: max-content;
+  max-width: min(60rem, 46vw);
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  background: var(--c-overlay);
+  box-shadow: var(--shadow-card-hover);
+  color: var(--c-soft);
+  font-size: 1.3rem;
+  font-weight: 400;                /* 防继承标题的 600 */
+  line-height: 1.55;
+  letter-spacing: 0;
+  white-space: normal;
+  overflow-wrap: break-word;
+  pointer-events: none;            /* 不挡鼠标，避免 hover 抖动 */
+  opacity: 0;
+  transform: translateY(-0.3rem);
+  transition: opacity .15s, transform .15s;
+}
+
+.tip-body b { color: var(--c-text); }
+
+.tip:is(:hover, :focus-visible) .tip-body {
+  opacity: 1;
+  transform: none;
+}
+
+/* 变体：气泡在上方（元素贴近底部时用） */
+.tip--top .tip-body {
+  top: auto;
+  bottom: calc(100% + 0.5rem);
+  transform: translateY(0.3rem);
+}
+
+/* 变体：气泡右对齐（元素贴近右边界时用） */
+.tip--right .tip-body { left: auto; right: 0; }
+
+.tip:focus-visible {
+  outline: 2px solid var(--c-blue);
+  outline-offset: 2px;
+}
+
+/* ============================================================
    HEADER
    ============================================================ */
 
@@ -85,11 +309,88 @@ header {
   border-bottom: 1px solid var(--c-border);
 }
 
-/* 左侧占位 */
-header::before {
-  content: '';
+/* 左侧：主题切换 */
+.header-left {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 1rem;
 }
+
+/* ---- header 左侧按钮：主题（图标）/ 高亮开关（图标 + 文字） ---- */
+.theme-toggle,
+.focus-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  height: var(--btn-h);
+  line-height: 1;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--c-border);
+  background: var(--c-btn-bg);
+  color: var(--c-soft);                 /* ← 图标/文字颜色的唯一来源 */
+  cursor: pointer;
+  transition: color .18s, background-color .18s, border-color .18s,
+              box-shadow .18s, transform .12s;
+}
+
+/* 主题：正方形图标按钮 */
+.theme-toggle {
+  width: var(--btn-h);
+  padding: 0;
+}
+
+/* 高亮开关：图标 + 文字 */
+.focus-toggle {
+  gap: 0.5rem;
+  padding: 0 0.9rem;
+  font-family: inherit;
+  font-size: 1.3rem;
+}
+
+.theme-toggle .icon,
+.focus-toggle .icon { width: 1.6rem; height: 1.6rem; }
+
+.theme-toggle:hover,
+.focus-toggle:hover {
+  color: var(--c-text);
+  background: var(--c-hover);
+  border-color: var(--c-muted);
+}
+
+.theme-toggle:focus-visible,
+.focus-toggle:focus-visible {
+  outline: 2px solid var(--c-blue);
+  outline-offset: 2px;
+}
+
+/* 图标指示"将切换到"的主题 */
+.theme-toggle .icon-moon { display: none; }
+:root[data-theme="light"] .theme-toggle .icon-sun  { display: none; }
+:root[data-theme="light"] .theme-toggle .icon-moon { display: block; }
+
+/* ---- 高亮开关状态 ---- */
+.focus-toggle .icon-scan-eye { display: none; }
+
+.focus-toggle.is-active {
+  border-color: var(--c-blue-line);
+  background-color: var(--c-blue-bg);
+  box-shadow: 0 0 1.2rem -0.3rem var(--c-blue-glow);
+}
+.focus-toggle.is-active .icon-scan     { display: none; }
+.focus-toggle.is-active .icon-scan-eye { display: block; }
+
+.focus-toggle.is-active:hover {
+  border-color: var(--c-blue-line);
+  background-color: var(--c-blue-bg);
+  box-shadow: 0 0 1.8rem -0.3rem var(--c-blue-glow);
+}
+
+/* 权限：基础看板隐藏高亮开关与其说明（见 dashboard.js 的 Auth） */
+.focus-toggle.hidden,
+.focus-tip.hidden { display: none; }
 
 /* 标题 */
 .title {
@@ -243,13 +544,13 @@ main {
   border-radius: var(--radius-sm);
   background: var(--c-surface2);
   border: 1px solid transparent;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, background 0.15s, opacity 0.18s;
   font-size: 1.25rem;
 }
 
 .card:hover {
   border-color: var(--c-muted);
-  background: rgba(255,255,255,0.04);
+  background: var(--c-hover);
 }
 
 /* 状态指示条 */
@@ -262,9 +563,9 @@ main {
   transition: background 0.3s;
 }
 
-.c-bar.c-online  { background: var(--c-green); }
-.c-bar.c-offline { background: var(--c-muted); }
-.c-bar.c-fault   { background: var(--c-red);  }
+.c-bar.c-online  { background: var(--c-bar-online);  }
+.c-bar.c-offline { background: var(--c-bar-offline); }
+.c-bar.c-fault   { background: var(--c-bar-fault);   }
 
 .card .c-id {
   flex-shrink: 0;
@@ -350,6 +651,20 @@ main {
   color: var(--c-dim);
 }
 
+/* 选中船舶时高亮作业该船的设备卡片（岸桥 / 场桥 / 堆高机） */
+#qc-cards.has-active  .card:not(.is-active),
+#rtg-cards.has-active .card:not(.is-active),
+#fl-cards.has-active  .card:not(.is-active) {
+  opacity: .60;
+}
+
+#qc-cards  .card.is-active,
+#rtg-cards .card.is-active,
+#fl-cards  .card.is-active {
+  border-color: var(--c-blue);
+  background-color: var(--c-active-bg);
+}
+
 /* ============================================================
    右侧分上下区
    ============================================================ */
@@ -385,7 +700,6 @@ main {
   flex-direction: column;
   gap: var(--gap);
   min-height: 0;
-  overflow: hidden;
 }
 
 /* 船舶面板 */
@@ -400,7 +714,7 @@ main {
   background: none;
   border: none;
   border-radius: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* 单艘船舶卡片 */
@@ -415,8 +729,11 @@ main {
   border-radius: var(--radius-sm);
   border: 1px solid var(--c-border);
   background: var(--c-surface2);
-  box-shadow: 0 0 0.8rem rgba(0, 0, 0, 0.35);
-  transition: border-color 0.2s;
+  box-shadow: var(--shadow-card);
+  position: relative;
+  cursor: pointer;
+  transition: border-color .18s, box-shadow .18s, background-color .18s, 
+              transform .18s ease, opacity .18s;
   animation: ship-in 0.4s ease-out;
 }
 
@@ -427,20 +744,53 @@ main {
 
 .ship-card--empty {
   border: none;
-  /* border-style: dashed;
-  border-color: var(--c-border); */
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--c-fill);
   box-shadow: none;
+  cursor: default; 
 }
 
-.ship-card:hover {
-  border-color: var(--c-muted);
+.ship-card:not(.ship-card--empty):hover {
+  z-index: 2;
+  transform: translateY(-0.2rem);
+  box-shadow: var(--shadow-card-hover),
+              0 0 0 1px var(--sc-accent),
+              0 0 1.6rem -0.5rem var(--sc-accent);
+}
+
+.ship-card:not(.ship-card--empty):active {
+  background-color: var(--c-down-bg);
+  box-shadow: inset 0 0 0 1px var(--c-inner-line);
+  transition-duration: .05s;
+}
+
+.ship-card.is-active {
+  background-color: var(--c-active-bg-ship);
+  border-color: var(--sc-accent);
+  box-shadow: 0 0 0 1px var(--sc-accent),
+              0 0 1.6rem -0.5rem var(--sc-accent);
+}
+
+.ship-card.is-active:not(.ship-card--empty):hover {
+  transform: translateY(-0.2rem);
+  box-shadow: 0 0 0 1px var(--sc-accent),
+              0 0 1.6rem -0.5rem var(--sc-accent);
+}
+
+/* 有卡片展开时：其他船舶压暗 */
+.ship-panel.has-active .ship-card:not(.is-active):not(.ship-card--empty) {
+  opacity: .70;
+  border-color: var(--c-border);
+}
+
+.ship-panel.has-active .ship-card:not(.is-active):hover {
+  opacity: 1;
+  border-color: var(--sc-accent);
 }
 
 /* 船舶状态 */
-.ship-card.state-work  { border-color: var(--ship-work); }
-.ship-card.state-berth { border-color: var(--ship-berth); }
-.ship-card.state-wait  { border-color: var(--ship-wait); }
+.ship-card.state-work  { border-color: var(--ship-work);  --sc-accent: var(--c-green); }
+.ship-card.state-berth { border-color: var(--ship-berth); --sc-accent: var(--c-amber); }
+.ship-card.state-wait  { border-color: var(--ship-wait);  --sc-accent: var(--c-blue);  }
 
 .ship-card.state-work  .sc-ship { color: var(--c-green); }
 .ship-card.state-berth .sc-ship { color: var(--c-amber); }
@@ -581,8 +931,411 @@ main {
   font-size: 1.3rem;
   color: var(--c-dim);
   border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--c-fill);
 }
+
+/* ============================================================
+   详情面板
+   ============================================================ */
+
+.detail-panel {
+  display: none; 
+  min-height: 0;
+}
+
+.center-col.detail-open .detail-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--gap);
+  min-height: 0;
+  /* overflow: hidden; */
+}
+
+/* 展开时隐藏作业量统计 */
+.center-col.detail-open .chart-panel { display: none; }
+
+.detail-slot {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.detail-slot.hidden { display: none; }
+
+/* 船舶详情：头行通栏，图表与箱区表左右并排 */
+.detail-ship {
+  flex: 3;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 26rem;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.detail-ship > .sd-head { grid-column: 1 / -1; }
+.detail-qc   { flex: 1; }
+
+.detail-ship .sd-chart-wrap {
+  min-height: 0;
+  position: relative;
+}
+
+.detail-head { 
+  display: flex;
+  align-items: center;
+  gap: var(--gap);
+  margin-bottom: 0.6rem;
+  height: 5rem;
+  padding: 1rem 1.4rem;
+}
+
+.detail-panel .qd-head { display: none; }
+.detail-panel[data-mode="qc"] .qd-head { display: flex; }
+
+/* 船舶详情 */
+.sd-title {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  min-width: 16rem;
+}
+
+.sd-ship {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--c-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sd-voyage {
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: var(--c-soft);
+}
+
+.sd-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 20rem;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--c-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.sd-progress-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.sd-progress-pct {
+  letter-spacing: 0.02rem;
+  color: var(--c-text);              /* #7dd3fc  #4cc2ff */
+}
+
+.bar-total { background: linear-gradient(90deg, var(--bar-total-from), var(--bar-total-to)); }
+
+.sd-ref {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1.4rem;
+  margin-left: auto;
+}
+
+.sd-ref input + label { margin-left: 2rem; }
+
+.sd-ref input {
+  color-scheme: inherit;
+  background: transparent;
+  color: inherit;
+  height: 2.1rem;
+  font-size: 1.3rem;
+  border: 1px solid var(--c-line-soft);
+  border-radius: 0.4rem;
+  padding: 0.2rem 0.6rem;
+}
+
+#sd-duration { width: 6rem; }
+#sd-endtime { width: 16rem; }
+
+/* 关闭按钮：方形图标按钮，hover 变红 */
+.sd-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--btn-h);
+  height: var(--btn-h);
+  padding: 0;
+  line-height: 1;
+  color: var(--c-soft);
+  background: none;
+  border: 1px solid transparent;        /* 占位，避免 hover 时出现位移 */
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color .18s, background-color .18s, border-color .18s;
+}
+
+.sd-close .icon { width: 1.6rem; height: 1.6rem; }
+
+.sd-close:hover {
+  color: var(--c-red);
+  background-color: var(--c-red-bg);
+  border-color: var(--c-red-line);
+}
+
+.sd-close:active { background-color: var(--c-red-bg-2); }
+
+.sd-close:focus-visible,
+.panel-expand:focus-visible {
+  outline: 2px solid var(--c-blue);
+  outline-offset: 1px;
+}
+
+.sd-chart-wrap  {
+  padding: 0 1.4rem 1.4rem 1.4rem;
+}
+
+/* 船舶在场箱分布表 */
+.sd-cntr {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  min-height: 0;
+  padding: 0 1.4rem 1.4rem 1.4rem;
+  border-left: 1px solid var(--c-border);
+}
+
+.sd-cntr-head {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--c-soft);
+}
+
+.sd-cntr-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+  color: var(--c-text);
+}
+
+.sd-cntr-time { font-size: 1.2rem; font-weight: 400; color: var(--c-dim); }
+
+#cntr-refresh { margin-left: auto; margin-right: 0; }
+
+.sd-cntr-body { flex: 1; min-height: 0; overflow: auto; }
+
+.cntr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 1.3rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.cntr-table th, .cntr-table td {
+  padding: 0.15rem 0.8rem;
+  text-align: right;
+  border-bottom: 1px solid var(--c-border);
+}
+
+/* 场区分界 */
+.cntr-table tbody tr.ct-group-start > td {
+  border-top: 2px solid var(--c-border);
+  padding-top: 0.8rem;
+}
+.cntr-table tbody tr.ct-group-start:first-child > td { border-top: none; }
+
+/* 场区箱量相比上次更新减少 */
+.cntr-table tbody tr.ct-decrease > td.ct-area {
+  color: var(--c-dec);
+  font-weight: 500;
+}
+
+/* .cntr-table tbody tr.ct-decrease > td.ct-area::after {
+  content: ' ↓';
+  color: var(--c-green);
+} */
+
+/* 卸货港列突出 表头吸顶 */
+.cntr-table thead th { 
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--c-surface2);
+  font-weight: 600; 
+  color: var(--c-soft); 
+}
+
+.cntr-table thead th:not(:first-child):not(.ct-sum) {
+  color: var(--c-text);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* 合计列调暗 */
+.cntr-table tbody td.ct-sum { color: var(--c-soft); font-weight: 600; }
+
+/* 表底合计行（按流向纵向合计） */
+.cntr-table tfoot td {
+  position: sticky;
+  bottom: 0;
+  background: var(--c-surface2);
+  border-top: 1px solid var(--c-border);
+  border-bottom: none;
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+  font-weight: 700;
+  color: var(--c-text);
+}
+
+.cntr-table th:first-child, .cntr-table td:first-child { text-align: left; }
+.cntr-table .ct-sum { font-weight: 700; }
+.cntr-empty { font-size: 1.3rem; color: var(--c-dim); }
+
+#cntr-refresh { margin-left: auto; margin-right: 0; }
+
+/* 可用 = refresh-cw，禁用 = refresh-cw-off */
+#cntr-refresh .icon-refresh-off          { display: none; }
+#cntr-refresh:disabled .icon-refresh     { display: none; }
+#cntr-refresh:disabled .icon-refresh-off { display: inline-block; }
+
+/* 刷新按钮禁用 */
+.panel-expand:disabled,
+.panel-expand:disabled:hover {
+  opacity: 0.45;
+  color: var(--c-dim);
+  border-color: var(--c-border);
+  cursor: not-allowed;
+}
+
+/* 岸桥详情色块图 */
+.qd-title {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--c-text);
+}
+
+.qd-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: 0;
+  padding: 0 1.4rem 1.4rem 1.4rem;
+}
+
+.qd-legend {
+  display: flex;
+  padding-left: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  font-size: 1.2rem;
+  color: var(--c-dim);
+}
+/* 标题左侧分组 */
+.qd-legend-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.qd-legend-title {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--c-text);
+  letter-spacing: 0.02em;
+}
+
+.qd-legend-scale {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.qd-legend-bar {
+  width: 16rem;
+  height: 0.8rem;
+  border-radius: 0.4rem;
+  background: var(--c-track);        /* 由 syncQcLegend 覆盖为渐变 */
+}
+
+.qd-heat-wrap {
+  flex: 1;
+  min-height: 0;
+  max-height: 22rem;
+  position: relative;
+}
+
+.qd-heat-wrap canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.qd-heat-wrap.hidden { display: none; }
+
+.qd-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  color: var(--c-dim);
+  background-color: var(--c-fill);
+  border-radius: var(--radius-sm);
+}
+
+.qd-empty.hidden { display: none; }
+
+/* 权限：基础看板隐藏详情入口（见 dashboard.js 的 Auth） */
+.panel-expand.hidden { display: none; }
+.ship-panel.no-detail .ship-card { cursor: default; }
+
+/* qc_detail 展开按钮 / 在场箱刷新按钮 */
+.panel-expand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: var(--btn-h);
+  padding: 0 0.9rem;
+  line-height: 1;
+  font-family: inherit;
+  font-size: 1.3rem;
+  color: var(--c-soft);
+  border: 1px solid var(--c-border);
+  background-color: var(--c-btn-bg);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  margin-left: 1rem;
+  margin-right: auto;
+  transition: color .18s, background-color .18s, border-color .18s;
+}
+
+.panel-expand .icon { width: 1.4rem; height: 1.4rem; }
+
+.panel-expand:hover {
+  color: var(--c-text);
+  border-color: var(--c-dim);
+  background-color: var(--c-hover);
+}
+
+.qd-head .sd-close { margin-left: auto; }
+
+/* ============================================================
+   作业量图表面板
+   ============================================================ */
 
 .chart-panel {
   flex: 1;
@@ -682,18 +1435,35 @@ main {
    滚动条
    ============================================================ */
 
-.card-list::-webkit-scrollbar {
-  width: 0.3rem;
+.card-list::-webkit-scrollbar,
+.sd-cntr-body::-webkit-scrollbar {
+  width: 0.6rem;
+  height: 0.6rem;
 }
 
-.card-list::-webkit-scrollbar-track {
+.card-list::-webkit-scrollbar-track,
+.sd-cntr-body::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.card-list::-webkit-scrollbar-thumb {
+.card-list::-webkit-scrollbar-thumb,
+.sd-cntr-body::-webkit-scrollbar-thumb {
   background: var(--c-border);
-  border-radius: 3px;
+  border-radius: 0.3rem;
 }
+
+.card-list::-webkit-scrollbar-thumb:hover,
+.sd-cntr-body::-webkit-scrollbar-thumb:hover {
+  background: var(--c-muted);
+}
+
+/* 横竖交汇处的方块，避免出现白点 */
+.sd-cntr-body::-webkit-scrollbar-corner { background: transparent; }
+
+/* 预留滚动条槽位
+.sd-cntr-body {
+  scrollbar-gutter: stable;
+} */
 
 /* ============================================================
    宽屏 / 小屏

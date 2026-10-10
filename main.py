@@ -36,6 +36,8 @@ def load_config(base_dir: str) -> dict:
         _resolve_env_vars(mqtt_config, ('username', 'password'))
         _resolve_env_vars(oracle_config, ('host', 'port', 'service_name', 'user', 'password', 'lib_dir'))
         _resolve_env_vars(auth_config, ('username', 'password'))
+        for user in auth_config.get('users') or []:          # 账号列表内的 ${} 占位符
+            _resolve_env_vars(user, ('username', 'password'))
 
         return config
 
@@ -77,7 +79,10 @@ def main():
     )
 
     # 设置客户端连接回调
-    def on_connect():
+    def on_connect(handler: SSEHandler):
+        # 下发本连接的角色，前端据此决定可用入口
+        handler.send_to({'type': 'auth', 'data': {'role': handler.role}})
+
         # 推送所有设备的初始定位状态
         all_states = detector.get_all_states()
         devices = [
@@ -88,12 +93,12 @@ def main():
             }
             for state in all_states.values()
         ]
-        sse_server.push({'type': 'init_loc', 'data': devices})
+        handler.send_to({'type': 'init_loc', 'data': devices})
 
         # 推送 DB 缓存数据
         for push_type, data in scheduler.get_cached_data().items():
-            if data:
-                sse_server.push({'type': push_type, 'data': data, 'init': True})
+            if data and push_type != 'qc_move':
+                handler.send_to({'type': push_type, 'data': data, 'init': True})
 
     SSEHandler.on_client_connect = on_connect
 
@@ -164,6 +169,10 @@ def main():
         sse_server=sse_server, 
         config=config.get('scheduler', {})
     )
+    # 供前端点击船舶时 GET /api/ship_history 拉取历史
+    SSEHandler.ship_history_getter = scheduler.get_ship_history
+    SSEHandler.qc_move_getter      = scheduler.get_qc_move
+    SSEHandler.port_cntr_getter    = scheduler.get_ship_cntr
     scheduler.start()
 
     # 7. SSE 服务（在所有依赖就绪后启动，避免 on_connect 竞态）

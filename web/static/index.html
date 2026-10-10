@@ -5,12 +5,43 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>机械设备监控看板</title>
 <link rel="stylesheet" href="css/dashboard.css">
+<script src="js/theme.js"></script>
 </head>
 <body>
 
   <!-- ========== HEADER ========== -->
   <header>
-    <h1 class="title">机械设备监控看板</h1>
+    <div class="header-left">
+      <button id="theme-toggle" class="theme-toggle" type="button"
+              title="切换浅色 / 深色主题" aria-label="切换浅色 / 深色主题">
+        <span class="icon icon-moon" aria-hidden="true"></span>
+        <span class="icon icon-sun"  aria-hidden="true"></span>
+      </button>
+      <button id="focus-toggle" class="focus-toggle" type="button"
+              title="高亮设备" aria-label="高亮设备" aria-pressed="true">
+        <span class="icon icon-scan"     aria-hidden="true"></span>
+        <span class="icon icon-scan-eye" aria-hidden="true"></span>
+        <span>高亮设备</span>
+      </button>
+      <span id="focus-tip" class="tip focus-tip" tabindex="0" aria-label="高亮设备说明">
+        <span class="icon icon-info" aria-hidden="true"></span>
+        <span class="tip-body">
+          <b>高亮设备</b><br>
+          开启后，点击船舶卡片，设备列表中正在为该船作业的设备将高亮显示，其余设备置灰。<br>
+          · 岸桥：按岸桥位置表中当前登记的作业船舶判断<br>
+          · 场桥 / 堆高机：优先按 Conda 中该设备绑定的作业船舶判断<br>
+          &emsp;未绑定时，回退取该设备近 N 分钟（当前取 15）内最近一条卸船作业指令对应的船舶<br>
+          &emsp;由于回退依赖时间窗口，未绑定设备的显示会随时间和指令更新而变化<br>
+          &emsp;装船设备必定存在绑定关系，因此装船场景下绑定表数据优先，无需回退到指令表<br>
+          &emsp;以上数据来源可在前端配置<br>
+          · 更新频率：随设备信息刷新，约每 10 分钟一次；外贸船已合并到同一实际船舶<br>
+        </span>
+      </span>
+    </div>
+    <h1 class="title">
+      <span class="title-full">中控作业监控平台</span>
+      <span class="title-base">机械设备监控看板</span>
+    </h1>
     <div class="header-right">
       <div class="datetime">
         <span class="date" id="date-text">----/--/--</span>
@@ -38,6 +69,83 @@
       <div class="ship-panel" id="ship-info">
         <span class="ship-placeholder">等待数据...</span>
       </div>
+      <!-- 详情区 -->
+      <div id="detail-panel" class="panel detail-panel">
+        <div class="detail-slot detail-ship" id="ship-detail">
+          <div class="detail-head sd-head">
+            <span class="sd-title">
+              <span class="sd-ship" id="sd-ship"></span>
+              <span class="sd-voyage" id="sd-voyage"></span>
+            </span>
+            <div class="sd-progress">
+              <div class="sd-progress-line">
+                <span class="sd-progress-num" id="sd-progress-num">--</span>
+                <span class="sd-progress-pct" id="sd-progress-pct"></span>
+              </div>
+              <div class="bar"><div class="bar-fill bar-total" id="sd-progress-bar"></div></div>
+            </div>
+            <span class="sd-ref">
+              <label for="sd-duration">预计作业时长 (h)</label>
+              <input type="number" id="sd-duration" min="0.5" step="0.5">
+              <label for="sd-endtime">预计完工时间</label>
+              <input type="datetime-local" id="sd-endtime">
+            </span>
+            <button id="sd-close" class="sd-close" type="button" aria-label="关闭">
+              <span class="icon icon-x" aria-hidden="true"></span>
+            </button>
+          </div>
+          <div class="sd-chart-wrap"><canvas id="sd-chart"></canvas></div>
+          <div class="sd-cntr">
+            <div class="sd-cntr-head">
+              <div class="sd-cntr-title">
+                <span>船舶出口箱分布</span>
+                <span class="sd-cntr-time" id="cntr-time"></span>
+              </div>
+              <button id="cntr-refresh" class="panel-expand" type="button" aria-label="刷新">
+                <span class="icon icon-refresh" aria-hidden="true"></span>
+                <span class="icon icon-refresh-off" aria-hidden="true"></span>
+                <span>刷新</span>
+              </button>
+            </div>
+            <div class="sd-cntr-body" id="cntr-body"><span class="cntr-empty">暂无数据</span></div>
+          </div>
+        </div>
+
+        <div class="detail-slot detail-qc hidden" id="qc-detail">
+          <div class="detail-head qd-head">
+            <span class="qd-title">岸桥作业详情</span>
+            <button id="qd-close" class="sd-close" type="button" aria-label="关闭">
+              <span class="icon icon-x" aria-hidden="true"></span>
+            </button>
+          </div>
+          <div class="qd-body">
+            <div class="qd-legend">
+              <span class="qd-legend-left">
+                <span class="qd-legend-title">岸桥作业效率（吊次/小时）</span>
+                <span class="tip" tabindex="0" aria-label="统计口径说明">
+                  <span class="icon icon-info" aria-hidden="true"></span>
+                  <span class="tip-body">
+                    <b>统计口径（参考值）：</b><br>
+                    TOS 未直接提供吊次统计，本图表数据由岸桥作业指令推导。实际观察发现，卸船期间指令时间可能存在偏差，因此与计费/报表口径可能存在差异。<br>
+                    · 数据源：TOS 岸桥作业指令表，按作业时间归入整点小时桶<br>
+                    · 推导方式：同一岸桥、同车号、间隔小于 30 秒的两条 20 英尺指令计 1 次，其余每条计 1 次<br>
+                    · 更新频率：每小时 03 分汇总上一个完整小时；当前小时尚未结束，最右一列暂无数据<br>
+                    · 展示窗口：最近 24 个已结束小时；外贸船已合并到同一实际船舶<br>
+                  </span>
+                </span>
+              </span>
+              <span class="qd-legend-scale">
+                <span class="qd-legend-label">0</span>
+                <span class="qd-legend-bar" id="qd-legend-bar"></span>
+                <span class="qd-legend-label" id="qd-legend-max">30+</span>
+              </span>
+            </div>
+            <div class="qd-heat-wrap"><canvas id="qd-chart"></canvas></div>
+            <div class="qd-empty hidden" id="qd-empty">暂无岸桥作业数据</div>
+          </div>
+        </div>
+      </div>
+      <!-- 作业量统计图表 -->
       <div class="panel chart-panel">
         <div class="chart-area">
           <div class="chart-header">
@@ -78,6 +186,10 @@
       <div class="right-section right-top">
         <div class="panel-header">
           <span class="panel-title">岸桥信息</span>
+          <button id="qc-expand" class="panel-expand" type="button" title="展开岸桥作业详情">
+            <span class="icon icon-detail" aria-hidden="true"></span>
+            <span>详情</span>
+          </button>
           <span>当前在线 <span class="panel-count" id="qc-count">0</span></span>
         </div>
         <div class="card-list" id="qc-cards">
@@ -98,6 +210,7 @@
 
   <!-- ========== SCRIPTS ========== -->
   <script src="libs/chart.umd.min.js"></script>
+  <script src="libs/chartjs-chart-matrix.min.js"></script>
   <script src="libs/chartjs-plugin-datalabels.min.js"></script>
   <script src="js/charts.js"></script>
   <script src="js/dashboard.js"></script>

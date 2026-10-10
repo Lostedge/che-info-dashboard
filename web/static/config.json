@@ -1,11 +1,12 @@
 {
   "show_forecast_ships": false,
-  "merge_foreign_ships": true,
+
+  "ship_device_src": "both",
 
   "devices": {
     "qc":  ["101", "102", "103", "104", "105", "106"],
     "rtg": null,
-    "fl":  ["301", "303", "304", "305", "306", "307"]
+    "fl":  ["301", "303", "304", "305", "306", "307", "308"]
   },
   
   "work_way": {
@@ -29,5 +30,18 @@
     "renderPoints": 48,
     "maxShips": 10,
     "ttlHours": 24
+  },
+
+  "qc_move_heat": {
+    "hours": 24,
+    "breaks": [0, 1, 8, 15, 22, 30],
+    "colors": ["#3f4a5b", "#fa8a8a", "#fca55c", "#fddb6b", "#68e39c", "#10b981"],
+    "darkFrom": 1,
+    "unit": "move",
+
+    "light": {
+      "colors": ["#dbeafe", "#fecaca", "#fed7aa", "#fef08a", "#bbf7d0", "#34d399"],
+      "darkFrom": 0
+    }
   }
 }

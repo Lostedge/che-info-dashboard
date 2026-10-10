@@ -1,0 +1,66 @@
+================================================================
+ 第三方软件声明 / Third-Party Notices
+ 范围：web/static/libs 及其子目录
+ 更新：2026-09-29
+================================================================
+
+[1] Chart.js v4.5.0                      文件: chart.umd.min.js
+    https://www.chartjs.org
+    版权: Copyright (c) 2014-2024 Chart.js Contributors        (LICENSE.md)
+          Copyright (c) 2025 Chart.js Contributors             (包内文件头)
+    许可: MIT
+
+[2] @kurkle/color v0.3.2（随 Chart.js UMD 包一并分发）
+    https://github.com/kurkle/color
+    版权: Copyright (c) 2018-2024 Jukka Kurkela                (LICENSE)
+          Copyright (c) 2023 Jukka Kurkela                     (包内文件头)
+    许可: MIT
+
+[3] chartjs-chart-matrix v3.1.0          文件: chartjs-chart-matrix.min.js
+    https://github.com/kurkle/chartjs-chart-matrix
+    版权: Copyright (c) 2026 Jukka Kurkela                     (包内文件头)
+    许可: MIT
+
+[4] chartjs-plugin-datalabels v2.2.0     文件: chartjs-plugin-datalabels.min.js
+    https://github.com/chartjs/chartjs-plugin-datalabels
+    版权: Copyright (c) 2017-2021 chartjs-plugin-datalabels contributors  (LICENSE.md)
+          Copyright (c) 2017-2022 chartjs-plugin-datalabels contributors  (包内文件头)
+    许可: MIT
+
+[5] Lucide icons（x / refresh-cw / refresh-cw-off / square-chart-gantt）
+    目录: icons/
+    https://lucide.dev  ·  https://github.com/lucide-icons/lucide
+    版权: Copyright (c) 2026 Lucide Icons and Contributors（ISC 部分）
+          Copyright (c) 2013-present Cole Bemis（MIT 部分，Feather 派生图标，含 x）
+    许可: ISC + MIT，完整正文见 icons/LICENSE；来源与版本见 icons/SOURCE.txt
+
+----------------------------------------------------------------
+ MIT 许可正文（适用于 [1] ~ [4] 的全部版权人）
+----------------------------------------------------------------
+
+The MIT License (MIT)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+----------------------------------------------------------------
+ 说明
+----------------------------------------------------------------
+- 各库许可以官方仓库 LICENSE / LICENSE.md 为准；包内文件头的版权年份可能与
+  LICENSE 文件不同步（上游自身差异），故两处均如实列出。
+- Chart.js 的 UMD 包内已包含 @kurkle/color 的代码与其内嵌声明。
+- [3] 未能取得独立的 LICENSE 文件，版权行以包内文件头为准，待上游提供后应更新。

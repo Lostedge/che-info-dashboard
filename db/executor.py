@@ -88,9 +88,9 @@ class QueryExecutor:
         sql = queries.SHIFT_DETECT_CY if kind == 'cy' else queries.SHIFT_DETECT_QC
         return self.execute(sql, {'check_time': check_time, 'lookback': lookback})
 
-    def get_ym_info(self) -> Optional[list[dict]]:
+    def get_ym_info(self, voyage_window: int = 15) -> Optional[list[dict]]:
         """获取堆场设备信息"""
-        return self.execute(queries.YM_INFO, {})
+        return self.execute(queries.YM_INFO, {'voyage_window': int(voyage_window)})
 
     def get_qc_info(self) -> Optional[list[dict]]:
         """获取岸桥设备信息"""
@@ -107,3 +107,18 @@ class QueryExecutor:
         voyages = ', '.join(f':v{i}' for i in range(len(voyage_nos)))
         params = {f'v{i}': v for i, v in enumerate(voyage_nos)}
         return self.execute(queries.SHIP_PROGRESS.format(voyages=voyages), params)
+
+    def get_qc_move(self, win_start, win_end) -> Optional[list[dict]]:
+        """获取岸桥 move 数：返回 [win_start, win_end) 内按 (岸桥, 整点) 的 move 数"""
+        return self.execute(queries.QC_MOVE_HOUR, {
+            'win_start': win_start,
+            'win_end':   win_end,
+        })
+
+    def get_ship_cntr(self, voyage_nos: list) -> Optional[list[dict]]:
+        """某(些)航次的装船箱分布（按场区/卸港/空重/尺寸）"""
+        if not voyage_nos:
+            return []
+        voyages = ', '.join(f':v{i}' for i in range(len(voyage_nos)))
+        params = {f'v{i}': v for i, v in enumerate(voyage_nos)}
+        return self.execute(queries.SHIP_CNTR_SUM.format(voyages=voyages), params)

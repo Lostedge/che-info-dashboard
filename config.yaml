@@ -39,10 +39,18 @@ sse:
 # ===========================================================
 # HTTP 鉴权（Basic Auth）
 # ===========================================================
+# role=dashboard：基础看板，无船舶详情 / 岸桥色块图（相关接口返回 403）
+# role=full     ：全功能
+# 未配置 role 时按 dashboard（最小权限）处理；仅配置 username/password 时为单账号
 auth:
   enabled: true
-  username: ${DASHBOARD_USERNAME}
-  password: ${DASHBOARD_PASSWORD}
+  users:
+    - username: ${DASHBOARD_USERNAME}
+      password: ${DASHBOARD_PASSWORD}
+      role: dashboard
+    - username: ${DASHBOARD_FULL_USERNAME}
+      password: ${DASHBOARD_FULL_PASSWORD}
+      role: full
 
 # ===========================================================
 # Oracle 数据库配置
@@ -70,6 +78,14 @@ scheduler:
       - "07:30"               # 第1班（交接带 07:00-07:30）
       - "18:30"               # 第2班（交接带 18:00-18:30）；单班只留第一个
     window_minutes: 30        # 每条交接带宽度 [检测点-window, 检测点)
+  ship:
+    merge_foreign_ships: true # 是否合并外贸船数据
+  ship_history:
+    retention_hours: 24       # 船舶作业历史保留时长（小时）
+  qc_move:
+    hours: 24                 # 前端展示窗口（桶数），需与 web/static/config.json 的 qc_move_heat.hours 一致
+  device_voyage:
+    minutes: 15               # 场桥/堆高机获取"当前作业航次"指令的回溯窗口（分钟）
   test:
     enabled: false
     test_datetime: "2024-07-29 23:30:00"
