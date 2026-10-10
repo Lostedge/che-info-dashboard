@@ -17,6 +17,26 @@
         <span class="icon icon-moon" aria-hidden="true"></span>
         <span class="icon icon-sun"  aria-hidden="true"></span>
       </button>
+      <button id="focus-toggle" class="focus-toggle" type="button"
+              title="高亮设备" aria-label="高亮设备" aria-pressed="true">
+        <span class="icon icon-scan"     aria-hidden="true"></span>
+        <span class="icon icon-scan-eye" aria-hidden="true"></span>
+        <span>高亮设备</span>
+      </button>
+      <span id="focus-tip" class="tip focus-tip" tabindex="0" aria-label="高亮设备说明">
+        <span class="icon icon-info" aria-hidden="true"></span>
+        <span class="tip-body">
+          <b>高亮设备</b><br>
+          开启后，点击船舶卡片，设备列表中正在为该船作业的设备将高亮显示，其余设备置灰。<br>
+          · 岸桥：按岸桥位置表中当前登记的作业船舶判断<br>
+          · 场桥 / 堆高机：优先按 Conda 中该设备绑定的作业船舶判断<br>
+          &emsp;未绑定时，回退取该设备近 N 分钟（当前取 15）内最近一条卸船作业指令对应的船舶<br>
+          &emsp;由于回退依赖时间窗口，未绑定设备的显示会随时间和指令更新而变化<br>
+          &emsp;装船设备必定存在绑定关系，因此装船场景下绑定表数据优先，无需回退到指令表<br>
+          &emsp;以上数据来源可在前端配置<br>
+          · 更新频率：随设备信息刷新，约每 10 分钟一次；外贸船已合并到同一实际船舶<br>
+        </span>
+      </span>
     </div>
     <h1 class="title">机械设备监控看板</h1>
     <div class="header-right">
@@ -104,7 +124,7 @@
                   <span class="tip-body">
                     <b>统计口径（参考值）：</b><br>
                     TOS 未直接提供吊次统计，本图表数据由岸桥作业指令推导。实际观察发现，卸船期间指令时间可能存在偏差，因此与计费/报表口径可能存在差异。<br>
-                    · 数据源：TOS 岸桥作业指令（SHIP_COMMAND），按作业时间归入整点小时桶<br>
+                    · 数据源：TOS 岸桥作业指令表，按作业时间归入整点小时桶<br>
                     · 推导方式：同一岸桥、同车号、间隔小于 30 秒的两条 20 英尺指令计 1 次，其余每条计 1 次<br>
                     · 更新频率：每小时 03 分汇总上一个完整小时；当前小时尚未结束，最右一列暂无数据<br>
                     · 展示窗口：最近 24 个已结束小时；外贸船已合并到同一实际船舶<br>

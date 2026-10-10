@@ -92,12 +92,18 @@ const CARD_LISTS = {
 
 const Auth = {
   role: 'dashboard',                            // fail-closed：收到 auth 消息前按最小权限
+
+  /** 仅 full 角色可见的入口（按 id 加 .hidden） */
+  FULL_ONLY: ['qc-expand', 'focus-toggle', 'focus-tip'],
+
   get full()   { return this.role === 'full'; },
   get denied() { return !this.full; },
 
   /** 应用权限：隐藏不可用入口 */
   apply() {
-    document.getElementById('qc-expand')?.classList.toggle('hidden', this.denied);
+    for (const id of this.FULL_ONLY) {
+      document.getElementById(id)?.classList.toggle('hidden', this.denied);
+    }
     document.getElementById('ship-info')?.classList.toggle('no-detail', this.denied);
     if (this.denied && DetailPanel.mode) DetailPanel.close();   // 降权时关闭已展开的面板
   },
@@ -145,6 +151,42 @@ const Theme = {
     const label = `切换到${this.current === 'light' ? '深色' : '浅色'}主题`;
     btn.title = label;
     btn.setAttribute('aria-label', label);
+  },
+};
+
+
+/* ============================================================
+   Focus - 选中船舶时是否高亮作业该船的设备
+   纯前端偏好，localStorage 记忆；初值为开（与加开关前的行为一致）
+   ============================================================ */
+
+const Focus = {
+  KEY: 'ship-focus',
+  on: true,
+
+  init() {
+    this.on = localStorage.getItem(this.KEY) !== '0';
+    const btn = document.getElementById('focus-toggle');
+    if (!btn) return;
+    btn.addEventListener('click', () => this.toggle());
+    this._sync(btn);
+  },
+
+  toggle() { this.set(!this.on); },
+
+  set(on) {
+    this.on = !!on;
+    try { localStorage.setItem(this.KEY, this.on ? '1' : '0'); }
+    catch (e) { /* localStorage 满/被禁用时不致命 */ }
+
+    const btn = document.getElementById('focus-toggle');
+    if (btn) this._sync(btn);
+    DetailPanel._markActive();        // 立即生效，无需等下一次推送
+  },
+
+  _sync(btn) {
+    btn.classList.toggle('is-active', this.on);
+    btn.setAttribute('aria-pressed', this.on ? 'true' : 'false');
   },
 };
 
@@ -574,6 +616,7 @@ const DetailPanel = {
     const info = document.getElementById('ship-info');
     const ship = id != null ? State.ships.find(s => String(s.id) === String(id)) : null;
 
+    // 船卡片选中态：始终反映"正在查看的船"，不受高亮开关影响
     if (info) {
       info.classList.toggle('has-active', id != null);
       info.querySelectorAll('.ship-card').forEach(el => {
@@ -581,15 +624,17 @@ const DetailPanel = {
       });
     }
 
-    // 岸桥 / 场桥 / 堆高机：选中船舶进入聚焦模式——作业该船的设备高亮，其他设备置灰
+    // 岸桥 / 场桥 / 堆高机：关闭高亮时 focusShip 恒为 null，
+    // 自然清空 is-active / has-active，无需额外的清理分支
+    const focusShip = Focus.on ? ship : null;
     for (const [type, cfg] of Object.entries(CARD_LISTS)) {
       const listEl = document.getElementById(cfg.listId);
       if (!listEl) continue;
       const working = new Set(
-        devicesOfShip(ship, filterByConfig(State.getByType(cfg.prefix), type))
+        devicesOfShip(focusShip, filterByConfig(State.getByType(cfg.prefix), type))
           .map(d => String(d.id))
       );
-      listEl.classList.toggle('has-active', id != null);   // ← 原为 working.size > 0
+      listEl.classList.toggle('has-active', focusShip != null);
       listEl.querySelectorAll('.card').forEach(el => {
         el.classList.toggle('is-active', working.has(String(el.dataset.id)));
       });
@@ -1098,6 +1143,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   State._initShipProgPct();
   Auth.apply();               // 首帧即按最小权限隐藏入口，避免闪出后又收回
   Theme.init();               // 初值已在 head 中生效，这里只绑定按钮
+  Focus.init();
   await Config.load();
   SSEClient.init();
 });

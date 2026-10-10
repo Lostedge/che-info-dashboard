@@ -38,6 +38,9 @@
   --c-red-bg:     rgba(248, 81, 73, 0.14);
   --c-red-line:   rgba(248, 81, 73, 0.45);
   --c-red-bg-2:   rgba(248, 81, 73, 0.26);
+  --c-blue-bg:    rgba(88, 166, 255, 0.12);
+  --c-blue-line:  rgba(88, 166, 255, 0.55);
+  --c-blue-glow:  rgba(88, 166, 255, 0.35);
 
   /* 阴影 */
   --shadow-card:       0 0 0.8rem rgba(0, 0, 0, 0.35);
@@ -116,6 +119,9 @@
   --c-red-bg:     rgba(220, 38, 38, 0.10);
   --c-red-line:   rgba(220, 38, 38, 0.35);
   --c-red-bg-2:   rgba(220, 38, 38, 0.18);
+  --c-blue-bg:    rgba(37, 99, 235, 0.10);
+  --c-blue-line:  rgba(37, 99, 235, 0.45);
+  --c-blue-glow:  rgba(37, 99, 235, 0.18);
 
   --shadow-card:       0 1px 2px rgba(15, 23, 42, 0.05), 0 4px 12px rgba(15, 23, 42, 0.06);
   --shadow-card-hover: 0 8px 24px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.07);
@@ -199,6 +205,8 @@ body {
 .icon-sun         { -webkit-mask-image: url("../libs/icons/sun.svg");                mask-image: url("../libs/icons/sun.svg"); }
 .icon-moon        { -webkit-mask-image: url("../libs/icons/moon.svg");               mask-image: url("../libs/icons/moon.svg"); }
 .icon-info        { -webkit-mask-image: url("../libs/icons/info.svg");               mask-image: url("../libs/icons/info.svg"); }
+.icon-scan        { -webkit-mask-image: url("../libs/icons/scan.svg");               mask-image: url("../libs/icons/scan.svg"); }
+.icon-scan-eye    { -webkit-mask-image: url("../libs/icons/scan-eye.svg");           mask-image: url("../libs/icons/scan-eye.svg"); }
 
 /* ============================================================
    通用：悬浮说明（.tip）
@@ -233,7 +241,7 @@ body {
   background: var(--c-overlay);
   box-shadow: var(--shadow-card-hover);
   color: var(--c-soft);
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   font-weight: 400;                /* 防继承标题的 600 */
   line-height: 1.55;
   letter-spacing: 0;
@@ -287,36 +295,53 @@ header {
   display: flex;
   align-items: center;
   justify-content: flex-start;
+  gap: 1rem;
 }
 
-.theme-toggle {
+/* ---- header 左侧按钮：主题（图标）/ 高亮开关（图标 + 文字） ---- */
+.theme-toggle,
+.focus-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: var(--btn-h);
   height: var(--btn-h);
-  padding: 0;
   line-height: 1;
   border-radius: var(--radius-sm);
   border: 1px solid var(--c-border);
   background: var(--c-btn-bg);
-  color: var(--c-soft);
+  color: var(--c-soft);                 /* ← 图标/文字颜色的唯一来源 */
   cursor: pointer;
-  transition: color .18s, background-color .18s, border-color .18s, transform .12s;
+  transition: color .18s, background-color .18s, border-color .18s,
+              box-shadow .18s, transform .12s;
 }
 
-.theme-toggle .icon { width: 1.6rem; height: 1.6rem; }
+/* 主题：正方形图标按钮 */
+.theme-toggle {
+  width: var(--btn-h);
+  padding: 0;
+}
 
-.theme-toggle:hover {
+/* 高亮开关：图标 + 文字 */
+.focus-toggle {
+  gap: 0.5rem;
+  padding: 0 0.9rem;
+  font-family: inherit;
+  font-size: 1.3rem;
+}
+
+.theme-toggle .icon,
+.focus-toggle .icon { width: 1.6rem; height: 1.6rem; }
+
+.theme-toggle:hover,
+.focus-toggle:hover {
   color: var(--c-text);
   background: var(--c-hover);
   border-color: var(--c-muted);
 }
 
-.theme-toggle:active { transform: scale(0.94); }
-
-.theme-toggle:focus-visible {
+.theme-toggle:focus-visible,
+.focus-toggle:focus-visible {
   outline: 2px solid var(--c-blue);
   outline-offset: 2px;
 }
@@ -325,6 +350,27 @@ header {
 .theme-toggle .icon-moon { display: none; }
 :root[data-theme="light"] .theme-toggle .icon-sun  { display: none; }
 :root[data-theme="light"] .theme-toggle .icon-moon { display: block; }
+
+/* ---- 高亮开关状态 ---- */
+.focus-toggle .icon-scan-eye { display: none; }
+
+.focus-toggle.is-active {
+  border-color: var(--c-blue-line);
+  background-color: var(--c-blue-bg);
+  box-shadow: 0 0 1.2rem -0.3rem var(--c-blue-glow);
+}
+.focus-toggle.is-active .icon-scan     { display: none; }
+.focus-toggle.is-active .icon-scan-eye { display: block; }
+
+.focus-toggle.is-active:hover {
+  border-color: var(--c-blue-line);
+  background-color: var(--c-blue-bg);
+  box-shadow: 0 0 1.8rem -0.3rem var(--c-blue-glow);
+}
+
+/* 权限：基础看板隐藏高亮开关与其说明（见 dashboard.js 的 Auth） */
+.focus-toggle.hidden,
+.focus-tip.hidden { display: none; }
 
 /* 标题 */
 .title {
@@ -592,9 +638,9 @@ main {
   opacity: .60;
 }
 
-#qc-cards  .card.is-active:not(.offline),
-#rtg-cards .card.is-active:not(.offline),
-#fl-cards  .card.is-active:not(.offline) {
+#qc-cards  .card.is-active,
+#rtg-cards .card.is-active,
+#fl-cards  .card.is-active {
   border-color: var(--c-blue);
   background-color: var(--c-active-bg);
 }
